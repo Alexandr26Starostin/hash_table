@@ -87,7 +87,7 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 	element -> data            = data;
 
 	(ptr_list -> tail) -> next_element = element;
-	
+
 	ptr_list -> tail = element;
 
 	(ptr_list -> size_of_list)++;
@@ -117,6 +117,53 @@ errors_in_hash_table_t print_list (list_t* ptr_list)
 	}
 
 	printf ("----------------------------------------------------\n\n");
+
+	return NOT_ERROR;
+}
+
+errors_in_hash_table_t find_element_in_list	(list_t* ptr_list, data_t data)
+{
+	assert (ptr_list);
+
+	node_t* find_element = ptr_list -> head;
+
+	size_t index_element = 0;
+
+	while (find_element != NULL)
+	{
+		if (find_element -> data == data)
+		{
+			printf ("Find data (%ld) in list:\nindex == %ld\n\n", data, index_element);
+			return NOT_ERROR;
+		}
+
+		index_element++;
+
+		find_element = find_element -> next_element;
+	}
+
+	printf ("Cannot find data (%ld) in list\n\n", data);
+
+	return NOT_ERROR;
+}
+
+errors_in_hash_table_t find_element_in_list_for_test (list_t* ptr_list, data_t data)
+{
+	assert (ptr_list);
+
+	node_t* find_element = ptr_list -> head;
+
+	size_t index_element = 0;
+
+	while (find_element != NULL)
+	{
+		if (find_element -> data == data)
+			return NOT_ERROR;
+
+		index_element++;
+
+		find_element = find_element -> next_element;
+	}
 
 	return NOT_ERROR;
 }

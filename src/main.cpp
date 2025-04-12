@@ -23,6 +23,13 @@ int main ()
 
 	print_list (&list_with_long);
 
+	find_element_in_list (&list_with_long, 700);
+	find_element_in_list (&list_with_long, -1);
+	find_element_in_list (&list_with_long, -5);
+	find_element_in_list (&list_with_long, 100);
+	find_element_in_list (&list_with_long, -100);
+	find_element_in_list (&list_with_long, 0);
+
 	dtor_list (&list_with_long);
 
 	return NOT_ERROR;
