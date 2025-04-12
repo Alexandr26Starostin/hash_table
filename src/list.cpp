@@ -160,10 +160,41 @@ errors_in_hash_table_t find_element_in_list_for_test (list_t* ptr_list, data_t d
 		if (find_element -> data == data)
 			return NOT_ERROR;
 
-		index_element++;
+		index_element++;  //!!! we count index_element in test
 
 		find_element = find_element -> next_element;
 	}
+
+	return NOT_ERROR;
+}
+
+errors_in_hash_table_t get_element_from_index (list_t* ptr_list, size_t find_index_element, data_t* ptr_return_data)
+{
+	assert (ptr_list);
+	assert (ptr_return_data);
+
+	size_t max_index_in_list = (ptr_list -> size_of_list) - 1;
+
+	if (find_index_element > max_index_in_list)
+	{
+		printf ("Error in %s:%d\n"
+				"Try to get value from outside of list\n"
+				"max_index_in_list  == %ld\n"
+				"find_index_element == %ld", __FILE__, __LINE__, max_index_in_list, find_index_element);
+
+		return TRY_TO_GET_VALUE_OUTSIDE_LIST;
+	}
+
+	size_t index = 0;
+
+	node_t* element = ptr_list -> head;
+
+	for (; index < find_index_element; index++)
+	{
+		element = element -> next_element;
+	}
+
+	*ptr_return_data = element -> data;
 
 	return NOT_ERROR;
 }

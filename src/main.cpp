@@ -30,6 +30,12 @@ int main ()
 	find_element_in_list (&list_with_long, -100);
 	find_element_in_list (&list_with_long, 0);
 
+	data_t get_value_test = INITIALIZATION_OF_DATA_T;
+
+	get_element_from_index  (&list_with_long, 5, &get_value_test);
+
+	printf ("get_value_test == %ld\n\n", get_value_test);
+
 	dtor_list (&list_with_long);
 
 	return NOT_ERROR;
