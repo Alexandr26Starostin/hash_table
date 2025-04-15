@@ -144,13 +144,11 @@ static errors_in_prepare_t write_words (FILE* file_text, FILE* file_words)
 	{
 		shifting = MIN_SHIFTING;   //if find [^ ,;!?{}\":&()<>.\n]
 
-		word_from_text[0] = '\0';
-
 		sscanf (text + index_text, "%32[^ ,;!?{}\":&()<>.\n]%n", word_from_text, &shifting);
 
 		word_from_text[shifting] = '\n';
 
-		if (word_from_text[1] != '\n' || word_from_text[0] != '\0')	
+		if (word_from_text[MIN_SHIFTING] != '\n')	
 			index_words += add_word_in_array (words + index_words, word_from_text);
 			
 		index_text += (size_t) shifting;  
