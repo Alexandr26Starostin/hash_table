@@ -6,6 +6,9 @@
 		"ranges": "cpp",
 		"span": "cpp",
 		"chrono": "cpp",
-		"variant": "cpp"
+		"variant": "cpp",
+		"*.tcc": "cpp",
+		"unordered_map": "cpp",
+		"sstream": "cpp"
 	}
 }

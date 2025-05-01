@@ -10,18 +10,102 @@ size_t hash_sum_ascii (char* str)
 {
 	assert (str);
 
-	size_t sum 	 = 0;
+	size_t sum 	  = 0,
+		   symbol = 0;
 	
-	while ((*str) != '\0')
+	while ((symbol = (size_t) (*str)) != '\0')
 	{
-		sum += (size_t) str[0];
+		sum += symbol;
 		str++;
 	}
 
 	return sum % COUNT_BUCKETS;
 }
 
-errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, const char* str_name_func_hash, const char* name_inf_file)
+size_t hash_sum_of_squares (char* str)
+{
+	assert (str);
+
+	size_t sum    = 0,
+		   symbol = 0;
+
+	while ((symbol = (size_t) (*str)) != '\0')
+	{
+		sum += symbol * symbol;
+		str++;
+	}
+
+	return sum % COUNT_BUCKETS;
+}
+
+size_t hash_djb2 (char* str)
+{
+	assert (str);
+
+	size_t hash   = BASE_NUMBER_DJB2,
+		   symbol = 0;
+
+	for (size_t byte = 0; (symbol = (size_t) str[byte]) != '\0'; byte++)
+	{
+		hash = ((hash << SHIFTING_IN_GFB2) + hash) ^ symbol;
+	}
+
+	return hash % COUNT_BUCKETS;
+}
+
+size_t hash_ascii_first_symbol (char* str)
+{
+	assert (str);
+
+	return (size_t) ((*str) % COUNT_BUCKETS);
+}
+
+size_t hash_mul_all_ascii (char* str)
+{
+	assert (str);
+
+	size_t mul    = 1,
+		   symbol = 0;
+
+	while ((symbol = (size_t) (*str)) != '\0')
+	{
+		mul *= (size_t) symbol;
+		str++;
+	}
+
+	return mul % COUNT_BUCKETS;
+}
+
+size_t hash_average (char* str)
+{
+	assert (str);
+
+	size_t sum           = 0,
+	       count_symbols = 0,
+		   symbol        = 0;
+
+	while ((symbol = (size_t) (*str)) != '\0')
+	{
+		sum += symbol;
+
+		count_symbols++;
+		str++;
+	}
+
+	return (sum / count_symbols) % COUNT_BUCKETS;
+}
+
+size_t hash_crc32 (char* str)
+{
+	assert (str);
+
+	size_t happy_count = 177;
+
+	return happy_count;
+}
+//--------------------------------------------------------------------------
+
+errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, char* str_name_func_hash, char* name_inf_file)
 {
 	assert (hash_table);
 	assert (str_name_func_hash);
@@ -71,6 +155,8 @@ errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, const char
 					   "\\end{tikzpicture}\n\n"
 					   "load\\_factor = %lg\n\n"
 					   "\\end{document}\n", ((double) load_factor) / COUNT_BUCKETS);
+
+	printf ("load_factor = %lg\n", ((double) load_factor) / COUNT_BUCKETS);
 
 	if (fclose (inf_file) == EOF)
 	{

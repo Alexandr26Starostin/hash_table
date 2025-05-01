@@ -63,7 +63,7 @@ errors_in_hash_table_t dtor_list (list_t* ptr_list)
 
 static errors_in_hash_table_t dtor_nodes (node_t* element)
 {
-	if (element == NULL) {return NOT_ERROR;}   //find next_element after tail
+	if (! element) {return NOT_ERROR;}   //find next_element after tail
 
 	dtor_nodes (element -> next_element);
 	free (element -> data);

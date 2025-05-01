@@ -3,6 +3,7 @@ FLAGS= -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equal
 #INTRINSICS=-mavx2 -msse
 FILES=main.o
 TARGET=prepare_file
+SANITIZERS=-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize=null -fno-sanitize=alignment
 #SFML_TARGETS=sfml-app -lsfml-graphics -lsfml-window -lsfml-network -lsfml-system #-lsfml-audio
 
 # pathsub
@@ -19,11 +20,11 @@ prepare:
 
 $(TARGET): $(FILES)
 	@echo "Linling..."
-	@$(CC) $(FLAGS) $(PATCHED_FILES) -o $(TARGET) 
+	@$(CC) $(FLAGS) $(SANITIZERS) $(PATCHED_FILES) -o $(TARGET) 
 #-o $(SFML_TARGETS) 
 
 main.o: main.cpp
-	@$(CC) -c $(FLAGS) main.cpp -o build/main.o
+	@$(CC) -c $(FLAGS) $(SANITIZERS) main.cpp -o build/main.o
 
 clean:
 	rm -rf $(TARGET)
