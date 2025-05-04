@@ -2,19 +2,24 @@
 #define CONST_IN_HASH_TABLE_H
 
 #define PRINT_INF_ABOUT_HASH_FUNC
+#define TEST_PROGRAM_
 
 //typedef long data_t; 
 typedef char* data_t;
 
-const size_t SIZE_OF_DELETE_LIST      = 0;
-const size_t MIN_SIZE_OF_LIST         = 1;
-const size_t COUNT_NODES_IN_CALLOC    = 1;
-const size_t MIN_COUNTER_ELEMENT      = 1;
-const data_t INITIALIZATION_OF_DATA_T = 0;
-const size_t COUNT_BUCKETS            = 727;
-const size_t INDEX_FILE_WORDS_IN_ARGV = 1;
-const size_t MAX_LEN_WORD             = 32;
-const int    MIN_VALUE_INDEX_ARGC     = 2;
+const size_t SIZE_OF_DELETE_LIST       = 0;
+const size_t MIN_SIZE_OF_LIST          = 1;
+const size_t COUNT_NODES_IN_CALLOC     = 1;
+const size_t MIN_COUNTER_ELEMENT       = 1;
+const data_t INITIALIZATION_OF_DATA_T  = 0;
+const size_t COUNT_BUCKETS             = 727;
+const size_t INDEX_FILE_WORDS_IN_ARGV  = 1;
+const size_t MAX_LEN_WORD              = 32;
+const int    MIN_VALUE_INDEX_ARGC      = 2;
+const size_t MIN_SIZE_WORDS_FOR_SEARCH = 64;
+const size_t INCREASE_SIZE_IN_REALLOC  = 2;
+const size_t NOT_FIND_ELEMENT          = 0;
+const size_t COUNT_ADDITIONAL_ELEMENT  = 1;
 //const char*  POISON                   = "\0";
 
 enum errors_in_hash_table_t
@@ -31,7 +36,17 @@ enum errors_in_hash_table_t
 	FAILED_STRNCPY                    = 9,
 	NOT_FIND_FLAG_HASH                = 10,
 	NOT_DEFINED_NAME_FUNC_HASH        = 11,
-	NOT_FIND_FLAG_INF_FUNC_HASH       = 12
+	NOT_FIND_FLAG_INF_FUNC_HASH       = 12,
+	NOT_FIND_FLAG_FIND                = 13,
+	NOT_MEMORY_FROM_CALLOC            = 14,
+	ERROR_IN_FREAD                    = 15,
+	ERROR_IN_REALLOC                  = 16
+};
+
+enum find_flag_t
+{
+	NOT_FIND_FLAG = 0,
+	FIND_FLAG     = 1
 };
 
 struct node_t
@@ -51,10 +66,17 @@ struct list_t
 	node_t* tail; 	
 };
 
-enum find_flag_t
+struct inf_hash_table_t
 {
-	NOT_FIND_FLAG = 0,
-	FIND_FLAG     = 1
+	size_t (*func_hash) (char*);
+	list_t hash_table[COUNT_BUCKETS];
+};
+
+struct inf_for_search_t
+{
+	char*  symbols_from_file;
+	char** words_for_search;
+	size_t count_words;
 };
 
 #endif

@@ -6,7 +6,8 @@
 #include "const_in_hash_table.h"
 #include "list.h"
 
-static errors_in_hash_table_t dtor_nodes (node_t* element);
+static errors_in_hash_table_t dtor_nodes      (node_t* element);
+static bool 				  compare_element (data_t element_1, data_t element_2);   //data_t == char*
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -26,7 +27,7 @@ errors_in_hash_table_t ctor_list (list_t* ptr_list)
 	first_element -> next_element    = NULL;
 	first_element -> counter_element = MIN_COUNTER_ELEMENT;
 
-	first_element -> data = (char*) calloc (MAX_LEN_WORD + 1, sizeof (char));
+	first_element -> data = (char*) calloc (MAX_LEN_WORD + COUNT_ADDITIONAL_ELEMENT, sizeof (char));
 	if (first_element -> data == NULL)
 	{
 		printf ("Error in %s:%d\nHave not memory for first_element -> data in try to create list\n\n", __FILE__, __LINE__);
@@ -80,7 +81,7 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 
 	while (find_element != NULL)
 	{
-		if (! strcmp (find_element -> data, data))
+		if (compare_element (find_element -> data, data))  //find_element -> data == data
 		{
 			(find_element -> counter_element)++;   //find data in list
 			return NOT_ERROR;
@@ -89,7 +90,7 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 		find_element = find_element -> next_element;
 	}
 
-	//not find data in list
+	//not find data in list  
 
 	node_t* element = (node_t*) calloc (COUNT_NODES_IN_CALLOC, sizeof (node_t));
 	if (element == NULL)
@@ -101,7 +102,7 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 	element -> next_element    = NULL;
 	element -> counter_element = MIN_COUNTER_ELEMENT;
 
-	element -> data = (char*) calloc (MAX_LEN_WORD + 1, sizeof (char));
+	element -> data = (char*) calloc (MAX_LEN_WORD + COUNT_ADDITIONAL_ELEMENT, sizeof (char));
 	if (element -> data == NULL)
 	{
 		printf ("Error in %s:%d\nHave not memory for element -> data in try to add element (%s) in listt\n\n", __FILE__, __LINE__, data);
@@ -151,7 +152,7 @@ errors_in_hash_table_t print_list (list_t* ptr_list)
 	return NOT_ERROR;
 }
 
-errors_in_hash_table_t find_element_in_list	(list_t* ptr_list, data_t data)
+size_t find_element_in_list	(list_t* ptr_list, data_t data)
 {
 	assert (ptr_list);
 
@@ -161,41 +162,25 @@ errors_in_hash_table_t find_element_in_list	(list_t* ptr_list, data_t data)
 
 	while (find_element != NULL)
 	{
-		if (! strcmp (find_element -> data, data))
+		if (compare_element (find_element -> data, data))  //find_element -> data == data
 		{
-			printf ("Find data (%s) in list:\nindex == %ld\n\n", data, index_element);
-			return NOT_ERROR;
+			#ifndef TEST_PROGRAM
+				printf ("Find data (%s) in list:\nindex_element in list == %ld\n", data, index_element);
+			#endif
+
+			return find_element -> counter_element;
 		}
 
-		index_element++;
+		index_element++;   //!!! we count index_element in test too
 
 		find_element = find_element -> next_element;
 	}
 
-	printf ("Cannot find data (%s) in list\n\n", data);
+	#ifndef TEST_PROGRAM
+		printf ("Cannot find data (%s) in list\n", data);
+	#endif
 
-	return NOT_ERROR;
-}
-
-errors_in_hash_table_t find_element_in_list_for_test (list_t* ptr_list, data_t data)
-{
-	assert (ptr_list);
-
-	node_t* find_element = ptr_list -> head;
-
-	size_t index_element = 0;
-
-	while (find_element != NULL)
-	{
-		if (! strcmp (find_element -> data, data))
-			return NOT_ERROR;
-
-		index_element++;  //!!! we count index_element in test
-
-		find_element = find_element -> next_element;
-	}
-
-	return NOT_ERROR;
+	return NOT_FIND_ELEMENT;
 }
 
 errors_in_hash_table_t get_element_from_index (list_t* ptr_list, size_t find_index_element, data_t* ptr_return_data)
@@ -227,4 +212,43 @@ errors_in_hash_table_t get_element_from_index (list_t* ptr_list, size_t find_ind
 	*ptr_return_data = element -> data;
 
 	return NOT_ERROR;
+}
+
+static bool compare_element (data_t element_1, data_t element_2)
+{
+	//data_t == char*
+	assert (element_1);
+	assert (element_2);
+
+	size_t index = 0;
+
+	char symbol_1 = '\0';
+	char symbol_2 = '\0';
+
+	while ((symbol_1 = element_1[index]) != '\0' and /*symbol_1 != '\n' and symbol_1 != ' ' and*/
+		   (symbol_2 = element_2[index]) != '\0' /*and symbol_2 != '\n' and symbol_2 != ' '*/)
+
+	{
+		// if (symbol_1 >= 'A' and symbol_1 <= 'Z')
+		// {
+		// 	symbol_1 = (char) (symbol_1 - 'A' + 'a');
+		// }
+
+		// if (symbol_2 >= 'A' and symbol_2 <= 'Z')
+		// {
+		// 	symbol_2 = (char) (symbol_2 - 'A' + 'a');
+		// }
+
+		if (symbol_1 - symbol_2)
+		{
+			return false;   //element_1 != element_2
+		}
+
+		index++;
+	}
+
+	if (element_1[index] == '\0' and element_2[index] == '\0')
+		return true;     //element_1 == element_2
+
+	return false;
 }
