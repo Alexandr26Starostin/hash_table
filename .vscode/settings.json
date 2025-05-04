@@ -9,6 +9,9 @@
 		"variant": "cpp",
 		"*.tcc": "cpp",
 		"unordered_map": "cpp",
-		"sstream": "cpp"
+		"sstream": "cpp",
+		"random": "cpp",
+		"cmath": "cpp",
+		"ostream": "cpp"
 	}
 }

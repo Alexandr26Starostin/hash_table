@@ -12,7 +12,6 @@ const size_t MIN_SIZE_OF_LIST          = 1;
 const size_t COUNT_NODES_IN_CALLOC     = 1;
 const size_t MIN_COUNTER_ELEMENT       = 1;
 const data_t INITIALIZATION_OF_DATA_T  = 0;
-const size_t COUNT_BUCKETS             = 727;
 const size_t INDEX_FILE_WORDS_IN_ARGV  = 1;
 const size_t MAX_LEN_WORD              = 32;
 const int    MIN_VALUE_INDEX_ARGC      = 2;
@@ -20,7 +19,9 @@ const size_t MIN_SIZE_WORDS_FOR_SEARCH = 64;
 const size_t INCREASE_SIZE_IN_REALLOC  = 2;
 const size_t NOT_FIND_ELEMENT          = 0;
 const size_t COUNT_ADDITIONAL_ELEMENT  = 1;
-const size_t COUNT_ITERATIONS          = 70;
+
+const size_t COUNT_BUCKETS             = 727;
+const size_t COUNT_REPEATING           = 3;
 //const char*  POISON                   = "\0";
 
 enum errors_in_hash_table_t
@@ -41,7 +42,8 @@ enum errors_in_hash_table_t
 	NOT_FIND_FLAG_FIND                = 13,
 	NOT_MEMORY_FROM_CALLOC            = 14,
 	ERROR_IN_FREAD                    = 15,
-	ERROR_IN_REALLOC                  = 16
+	ERROR_IN_REALLOC                  = 16,
+	NOT_FIND_FLAG_PLOT                = 17
 };
 
 enum find_flag_t
@@ -79,5 +81,21 @@ struct inf_for_search_t
 	char** words_for_search;
 	size_t count_words;
 };
+
+#ifdef TEST_PROGRAM
+
+struct inf_test_t 
+{
+	size_t iterations;
+	size_t ticks;
+};
+
+struct inf_cpe_t
+{
+	size_t      max_iterations;
+	inf_test_t* tests;
+};
+#endif
+
 
 #endif

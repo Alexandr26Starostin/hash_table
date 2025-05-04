@@ -52,10 +52,21 @@ static errors_in_hash_table_t get_symbols_for_search   (int argc, char** argv, c
 static errors_in_hash_table_t get_words_for_search 	   (inf_for_search_t* ptr_inf_for_search);
 static errors_in_hash_table_t fill_words_for_search    (inf_for_search_t* ptr_inf_for_search);
        errors_in_hash_table_t print_words_for_search   (char** words_for_search, size_t count_words);
+
+#ifdef TEST_PROGRAM
+static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
+#else
 static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
+#endif
 
 #ifdef PRINT_INF_ABOUT_HASH_FUNC
 	static errors_in_hash_table_t get_inf_func_hash (int argc, char** argv, list_t* hash_table);
+#endif
+
+#ifdef TEST_PROGRAM
+	       errors_in_hash_table_t print_cpe_result   (inf_cpe_t cpe_result);
+	static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result);
+	static errors_in_hash_table_t fill_file_plot     (FILE* file_plot, inf_cpe_t cpe_result);
 #endif
 
 //----------------------------------------------------------------------------------------------------------------
@@ -297,7 +308,7 @@ errors_in_hash_table_t use_hash_table (int argc, char** argv, inf_hash_table_t* 
 
 	//print_words_for_search (inf_for_search.words_for_search, inf_for_search.count_words);
 
-	find_words_in_hash_table (*ptr_inf_hash_table, inf_for_search);   //return NOT_ERROR;
+	find_words_in_hash_table (argc, argv, *ptr_inf_hash_table, inf_for_search);   //return NOT_ERROR;
 
 	free (inf_for_search.words_for_search);
 	free (inf_for_search.symbols_from_file);
@@ -462,11 +473,16 @@ errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t c
 	return NOT_ERROR;
 }
 
+#ifdef TEST_PROGRAM
+static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search)
+#else
 static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search)
+#endif
 {
 	assert (inf_hash_table.hash_table);
 	assert (inf_hash_table.func_hash);
 	assert (inf_for_search.words_for_search);
+	assert (argv);
 
 	size_t  count_words      = inf_for_search.count_words;
 	size_t  index_bucket     = 0;
@@ -481,36 +497,245 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 	size_t max_index_word = count_words;
 
 	#ifdef TEST_PROGRAM
-	for (size_t iterations = 1; iterations <= count_words; iterations++)
-	{
-		max_index_word = iterations;
 
-		size_t ticks_before_cycle = __rdtsc();
+	size_t index_cpe = 0;
+
+	inf_test_t* tests = (inf_test_t*) calloc (count_words * COUNT_REPEATING, sizeof (inf_test_t));
+	if (tests == NULL)
+	{
+		printf ("Error in %s:%d\n"
+				"Have not memory for ticks from calloc\n\n", __FILE__, __LINE__);
+
+		return NOT_MEMORY_FROM_CALLOC;
+	}
+
+	inf_cpe_t cpe_result = {.max_iterations = max_index_word, 
+							.tests          = tests};
+
+	for (size_t index_repeating = 0; index_repeating < COUNT_REPEATING; index_repeating++)
+	{
+		for (size_t iterations = 1; iterations <= count_words; iterations++)
+		{
+			max_index_word = iterations;
+
+			size_t ticks_before_cycle = __rdtsc();
 	#endif
 
-		for (size_t index_word = 0; index_word < max_index_word; index_word++)
-		{
-			word = words_for_search[index_word];
+			for (size_t index_word = 0; index_word < max_index_word; index_word++)
+			{
+				word = words_for_search[index_word];
 
-			index_bucket = func_hash (word);
+				index_bucket = func_hash (word);
 
-			#ifndef TEST_PROGRAM
-			printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n", word, index_bucket);
-			size_t counter_word = find_element_in_list (hash_table + index_bucket, word);
-			printf ("counter_word == %ld\n-----------------------------------------\n\n", counter_word);
-			#endif
+				#ifndef TEST_PROGRAM
+				printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n", word, index_bucket);
+				size_t counter_word = find_element_in_list (hash_table + index_bucket, word);
+				printf ("counter_word == %ld\n-----------------------------------------\n\n", counter_word);
+				#endif
 
-			#ifdef TEST_PROGRAM
-			find_element_in_list (hash_table + index_bucket, word);
-			#endif
-		}
+				#ifdef TEST_PROGRAM
+				find_element_in_list (hash_table + index_bucket, word);
+				#endif
+			}
 
 	#ifdef TEST_PROGRAM
-		size_t ticks_after_cycle = __rdtsc();
+			size_t ticks_after_cycle = __rdtsc();
 
-		printf ("iteration == %4ld\t\tticks == %ld\n", iterations, ticks_after_cycle - ticks_before_cycle);
+			size_t ticks = ticks_after_cycle - ticks_before_cycle;
+
+			//printf ("iteration == %4ld\t\tticks == %ld\n", iterations, ticks);
+
+			(tests[index_cpe]).ticks      = ticks;
+			(tests[index_cpe]).iterations = iterations;
+			index_cpe++;
+		}
 	}
+
+	print_cpe_result   (cpe_result);
+	analyze_cpe_result (argc, argv, cpe_result);
+
+	free (tests);
 	#endif
 
 	return NOT_ERROR;
 }
+
+//---------------------------------------------------------------------------------------------------------------------------
+#ifdef TEST_PROGRAM
+
+errors_in_hash_table_t print_cpe_result (inf_cpe_t cpe_result)
+{
+	inf_test_t* tests = cpe_result.tests;
+	assert (tests);
+
+	size_t max_iterations = cpe_result.max_iterations;
+	size_t max_index      = max_iterations * COUNT_REPEATING;
+
+	printf ("-----------------------------------\ninf about cpe_result:\n"
+			"max_iterations == %ld\nCOUNT_REPEATING == %ld\n\n"
+			"iterations       ticks\n", max_iterations, COUNT_REPEATING);
+
+	for (size_t index = 0; index < max_index; index++)
+	{
+		printf ("%10ld       %ld\n", (tests[index]).iterations, (tests[index]).ticks);
+	}
+
+	printf ("-----------------------------------\n\n");
+
+	return NOT_ERROR;
+}
+
+static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result)
+{
+	assert (argv);
+
+	FIND_FLAG_("-plot", "Not find flag: -plot <file_for_with_code_for_print_plot.py>", NOT_FIND_FLAG_PLOT)
+
+	FILE* file_plot = fopen (argv[index_argc], "w");
+	if (file_plot == NULL)
+	{
+		printf ("Error in %s:%d\n"
+				"Cannot open file_search\n"
+				"Error in fopen(); or you don't <file_for_with_code_for_print_plot.py>:"
+				"-plot <file_for_with_code_for_print_plot.py>\n\n", __FILE__, __LINE__);
+
+		return CANNOT_OPEN_FILE;
+	}
+
+	errors_in_hash_table_t status = fill_file_plot (file_plot, cpe_result);
+	if (status) 
+	{
+		CLOSE_FILE_(file_plot, "file_plot")
+
+		return status;
+	}
+
+	CLOSE_FILE_(file_plot, "file_plot")
+
+	return NOT_ERROR;
+}
+
+static errors_in_hash_table_t fill_file_plot (FILE* file_plot, inf_cpe_t cpe_result)
+{
+	assert (file_plot);
+
+	inf_test_t* tests = cpe_result.tests;
+	assert (tests);
+
+	size_t max_iterations = cpe_result.max_iterations;
+	size_t max_index      = max_iterations * COUNT_REPEATING;
+
+	fprintf (file_plot, 
+
+	"import numpy as np\n"
+	"import matplotlib.pyplot as plt\n"
+	"from scipy import stats\n\n"
+						
+	"def linear_regression_with_errors(x, y):\n"
+    	"\t\"\"\"\n"
+   		"\tВычисляет параметры прямой (a, b), их погрешности и коэффициент детерминации R².\n"
+    	"\tВозвращает:\n"
+        	"\t\ta, b - параметры прямой,\n"
+        	"\t\ta_err, b_err - стандартные погрешности параметров,\n"
+        	"\t\tr_squared - коэффициент детерминации,\n"
+        	"\t\tequation - строку с уравнением.\n"
+		"\t\"\"\"\n"
+		"\tn = len(x)\n\n"
+
+		"\t# Вычисляем основные суммы\n"
+		"\tsum_x = np.sum(x)\n"
+		"\tsum_y = np.sum(y)\n"
+		"\tsum_xy = np.sum(x * y)\n"
+		"\tsum_x2 = np.sum(x ** 2)\n"
+		"\tsum_y2 = np.sum(y ** 2)\n\n"
+
+		"\t# Коэффициенты МНК\n"
+		"\ta = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)\n"
+		"\tb = (sum_y - a * sum_x) / n\n\n"
+
+		"\t# Предсказанные значения y\n"
+		"\ty_pred = a * x + b\n\n"
+
+		"\t# Остатки (разница между реальными и предсказанными y)\n"
+		"\tresiduals = y - y_pred\n\n"
+
+		"\t# Среднеквадратичная ошибка (стандартное отклонение остатков)\n"
+		"\tsigma = np.sqrt(np.sum(residuals ** 2) / (n - 2))\n\n"
+
+		"\t# Погрешности параметров\n"
+		"\tx_mean = np.mean(x)\n"
+		"\tS_xx = np.sum((x - x_mean) ** 2)\n\n"
+
+		"\ta_err = sigma / np.sqrt(S_xx)\n"
+		"\tb_err = sigma * np.sqrt(1 / n + x_mean ** 2 / S_xx)\n\n"
+
+		"\t# Коэффициент детерминации R²\n"
+		"\tss_total = np.sum((y - np.mean(y)) ** 2)\n"
+		"\tss_residual = np.sum(residuals ** 2)\n"
+		"\tr_squared = 1 - (ss_residual / ss_total)\n\n"
+
+		"\tequation = f\"y = ({a:.4f} ± {a_err:.4f})x + ({b:.4f} ± {b_err:.4f})\"\n\n"
+
+		"\treturn a, b, a_err, b_err, r_squared, equation\n\n"
+
+	"def plot_regression(x, y):\n"
+		"\t\"\"\"\n"
+		"\tСтроит график точек, линию регрессии и выводит статистику.\n"
+		"\t\"\"\"\n"
+		"\t# Вычисляем параметры регрессии\n"
+		"\ta, b, a_err, b_err, r_squared, equation = linear_regression_with_errors(x, y)\n\n"
+		
+		"\t# Создаём график\n"
+		"\tplt.figure(figsize=(10, 6))\n"
+		"\tplt.scatter(x, y, color='blue', label='Данные')\n\n"
+		
+		"\t# Линия регрессии\n"
+		"\tx_fit = np.linspace(min(x), max(x), 100)\n"
+		"\ty_fit = a * x_fit + b\n"
+		"\tplt.plot(x_fit, y_fit, color='red', label=f'МНК: {equation}')\n\n"
+		
+		"\t# Настройки графика\n"
+		"\tplt.xlabel('итераций в цикле', fontsize=12)\n"
+		"\tplt.ylabel('такты синхронизации на весь цикл', fontsize=12)\n"
+		"\tplt.title('Линейная регрессия с погрешностями параметров для измерения CPE', fontsize=14)\n"
+		"\tplt.legend(fontsize=12)\n"
+		"\tplt.grid(True, linestyle='--', alpha=0.6)\n\n"
+		
+		"\t# Вывод статистики в консоль\n"
+		"\tprint(\"Результаты регрессии:\")\n"
+		"\tprint(f\"Угловой коэффициент (a) = {a:.4f} ± {a_err:.4f}\")\n"
+		"\tprint(f\"Смещение (b) = {b:.4f} ± {b_err:.4f}\")\n"
+		"\tprint(f\"Коэффициент детерминации R² = {r_squared:.4f}\")\n"
+		"\tprint(f\"Уравнение: {equation}\")\n"
+		"\tplt.savefig('plot_cpe.png')\n"
+		"\t#plt.show()\n\n\n"
+
+
+		"# Пример использования\n"
+		"# Пример данных (замените на свои)\n"
+		"x = np.array([");
+
+		// "plot_regression(x, y)\n"
+
+		for (size_t index = 0; index < max_index; index++)
+		{
+			fprintf (file_plot, "%7ld, ", (tests[index]).iterations);
+		}
+
+		fprintf (file_plot, "])\n"
+							"y = np.array([");
+
+		for (size_t index = 0; index < max_index; index++)
+		{
+			fprintf (file_plot, "%7ld, ", (tests[index]).ticks);
+		}
+
+		fprintf (file_plot, "])\n\n"
+							"plot_regression(x, y)\n");
+
+	return NOT_ERROR;
+}
+
+#endif
+//---------------------------------------------------------------------------------------------------------------------------
+
