@@ -2,7 +2,7 @@
 #define CONST_IN_HASH_TABLE_H
 
 #define PRINT_INF_ABOUT_HASH_FUNC
-#define TEST_PROGRAM_
+#define TEST_PROGRAM
 
 //typedef long data_t; 
 typedef char* data_t;
@@ -20,6 +20,7 @@ const size_t MIN_SIZE_WORDS_FOR_SEARCH = 64;
 const size_t INCREASE_SIZE_IN_REALLOC  = 2;
 const size_t NOT_FIND_ELEMENT          = 0;
 const size_t COUNT_ADDITIONAL_ELEMENT  = 1;
+const size_t COUNT_ITERATIONS          = 70;
 //const char*  POISON                   = "\0";
 
 enum errors_in_hash_table_t

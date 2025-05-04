@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <x86intrin.h>
+//#include <immintrin.h>
 
 #include "const_in_hash_table.h"
 #include "list.h"
@@ -466,35 +468,49 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 	assert (inf_hash_table.func_hash);
 	assert (inf_for_search.words_for_search);
 
-	size_t counter_word = NOT_FIND_ELEMENT;
-	size_t count_words  = inf_for_search.count_words;
-
-	char** words_for_search = inf_for_search.words_for_search;
-
-	char* word = NULL;
-
-	size_t index_bucket = 0;
-
+	size_t  count_words      = inf_for_search.count_words;
+	size_t  index_bucket     = 0;
+	char*   word             = NULL;
+	char**  words_for_search = inf_for_search.words_for_search;
+	list_t* hash_table       = inf_hash_table.hash_table;
+	
 	size_t (*func_hash) (char*) = inf_hash_table.func_hash;
 
-	list_t* hash_table = inf_hash_table.hash_table;
+	//--------------------------------------------------------------------------
 
-	for (size_t index_word = 0; index_word < count_words; index_word++)
+	size_t max_index_word = count_words;
+
+	#ifdef TEST_PROGRAM
+	for (size_t iterations = 1; iterations <= count_words; iterations++)
 	{
-		word = words_for_search[index_word];
+		max_index_word = iterations;
 
-		index_bucket = func_hash (word);
+		size_t ticks_before_cycle = __rdtsc();
+	#endif
 
-		#ifndef TEST_PROGRAM
+		for (size_t index_word = 0; index_word < max_index_word; index_word++)
+		{
+			word = words_for_search[index_word];
+
+			index_bucket = func_hash (word);
+
+			#ifndef TEST_PROGRAM
 			printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n", word, index_bucket);
-		#endif
-
-		counter_word = find_element_in_list (hash_table + index_bucket, word);
-
-		#ifndef TEST_PROGRAM
+			size_t counter_word = find_element_in_list (hash_table + index_bucket, word);
 			printf ("counter_word == %ld\n-----------------------------------------\n\n", counter_word);
-		#endif
+			#endif
+
+			#ifdef TEST_PROGRAM
+			find_element_in_list (hash_table + index_bucket, word);
+			#endif
+		}
+
+	#ifdef TEST_PROGRAM
+		size_t ticks_after_cycle = __rdtsc();
+
+		printf ("iteration == %4ld\t\tticks == %ld\n", iterations, ticks_after_cycle - ticks_before_cycle);
 	}
+	#endif
 
 	return NOT_ERROR;
 }
