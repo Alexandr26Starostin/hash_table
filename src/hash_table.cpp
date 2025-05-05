@@ -41,8 +41,7 @@
 																		\
 		return code_error;										     	\
 	}
-
-
+	
 static errors_in_hash_table_t ctor_lists_in_hash_table (list_t* hash_table);
 static errors_in_hash_table_t get_word_from_file       (FILE* file_words, char* word);
 static errors_in_hash_table_t fill_hash_table          (int argc, char** argv, inf_hash_table_t* ptr_inf_hash_table, FILE* file_words);
@@ -68,6 +67,8 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 	static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result);
 	static errors_in_hash_table_t fill_file_plot     (FILE* file_plot, inf_cpe_t cpe_result);
 #endif
+
+static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* word, element_in_cash_t* ptr_word_from_cash);
 
 //----------------------------------------------------------------------------------------------------------------
 
@@ -492,6 +493,10 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 	
 	size_t (*func_hash) (char*) = inf_hash_table.func_hash;
 
+	cash_t 			   cash_with_words  = {};
+	//element_in_cash_t* elements_in_cash = cash_with_words.elements_in_cash;
+	element_in_cash_t  word_from_cash   = {};
+
 	//--------------------------------------------------------------------------
 
 	size_t max_index_word = count_words;
@@ -525,17 +530,43 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 			{
 				word = words_for_search[index_word];
 
+				search_in_cash_t status_cash = search_element_in_cash (cash_with_words, word, &word_from_cash);
+				if (status_cash)
+				{
+					#ifndef TEST_PROGRAM
+					printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n";
+							"counter_word == %ld\n-----------------------------------------\n\n", 
+							word, word_from_cash.index_bucket, word_from_cash.counter_word);
+					#endif
+
+					continue;
+				}
+
 				index_bucket = func_hash (word);
 
 				#ifndef TEST_PROGRAM
-				printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n", word, index_bucket);
+				printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n", word, index_bucket);				
+				#endif
+
 				size_t counter_word = find_element_in_list (hash_table + index_bucket, word);
+
+				#ifndef TEST_PROGRAM
 				printf ("counter_word == %ld\n-----------------------------------------\n\n", counter_word);
 				#endif
 
-				#ifdef TEST_PROGRAM
-				find_element_in_list (hash_table + index_bucket, word);
-				#endif
+				//------------------------------------------------------------
+				//add_element_in_cash
+
+				size_t index_free = cash_with_words.index_free;
+
+				element_in_cash_t* ptr_old_el_in_cash = cash_with_words.elements_in_cash + index_free;
+
+				ptr_old_el_in_cash -> count_words_in_text = counter_word;
+				ptr_old_el_in_cash -> index_bucket        = index_bucket;
+				ptr_old_el_in_cash -> word 				  = word;
+
+				cash_with_words.index_free = (index_free + 1) % SIZE_CASH_WITH_WORDS;
+				//------------------------------------------------------------
 			}
 
 	#ifdef TEST_PROGRAM
@@ -551,7 +582,7 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 		}
 	}
 
-	print_cpe_result   (cpe_result);
+	//print_cpe_result   (cpe_result);
 	analyze_cpe_result (argc, argv, cpe_result);
 
 	free (tests);
@@ -630,112 +661,165 @@ static errors_in_hash_table_t fill_file_plot (FILE* file_plot, inf_cpe_t cpe_res
 	"import numpy as np\n"
 	"import matplotlib.pyplot as plt\n"
 	"from scipy import stats\n\n"
-						
+
+	"def detect_outliers(x, y, threshold=2.5):\n"
+		"\t\"\"\"\n"
+		"\tОбнаруживает выбросы с помощью метода межквартильного размаха (IQR)\n"
+		"\tВозвращает маску с True для выбросов\n"
+		"\t\"\"\"\n"
+		"\t# Сначала выполняем линейную регрессию\n"
+		"\tslope, intercept, _, _, _ = stats.linregress(x, y)\n"
+		"\tresiduals = y - (slope * x + intercept)\n\n"
+		
+		"\t# Вычисляем квартили и межквартильный размах\n"
+		"\tQ1 = np.percentile(residuals, 25)\n"
+		"\tQ3 = np.percentile(residuals, 75)\n"
+		"\tIQR = Q3 - Q1\n\n"
+		
+		"\t# Определяем границы для выбросов\n"
+		"\tlower_bound = Q1 - threshold * IQR\n"
+		"\tupper_bound = Q3 + threshold * IQR\n\n"
+		
+		"\t# Возвращаем маску выбросов\n"
+		"\treturn (residuals < lower_bound) | (residuals > upper_bound)\n\n"
+
 	"def linear_regression_with_errors(x, y):\n"
-    	"\t\"\"\"\n"
-   		"\tВычисляет параметры прямой (a, b), их погрешности и коэффициент детерминации R².\n"
-    	"\tВозвращает:\n"
-        	"\t\ta, b - параметры прямой,\n"
-        	"\t\ta_err, b_err - стандартные погрешности параметров,\n"
-        	"\t\tr_squared - коэффициент детерминации,\n"
-        	"\t\tequation - строку с уравнением.\n"
+		"\t\"\"\"\n"
+		"\tВыполняет линейную регрессию и вычисляет погрешности параметров\n"
+		"\tВозвращает:\n"
+			"\t\tslope, intercept - параметры прямой\n"
+			"\t\tslope_err, intercept_err - погрешности параметров\n"
+			"\t\tr_squared - коэффициент детерминации\n"
 		"\t\"\"\"\n"
 		"\tn = len(x)\n\n"
-
+		
 		"\t# Вычисляем основные суммы\n"
 		"\tsum_x = np.sum(x)\n"
 		"\tsum_y = np.sum(y)\n"
 		"\tsum_xy = np.sum(x * y)\n"
 		"\tsum_x2 = np.sum(x ** 2)\n"
 		"\tsum_y2 = np.sum(y ** 2)\n\n"
-
+		
 		"\t# Коэффициенты МНК\n"
-		"\ta = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)\n"
-		"\tb = (sum_y - a * sum_x) / n\n\n"
-
-		"\t# Предсказанные значения y\n"
-		"\ty_pred = a * x + b\n\n"
-
-		"\t# Остатки (разница между реальными и предсказанными y)\n"
+		"\tslope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)\n"
+		"\tintercept = (sum_y - slope * sum_x) / n\n\n"
+		
+		"\t# Предсказанные значения и остатки\n"
+		"\ty_pred = slope * x + intercept\n"
 		"\tresiduals = y - y_pred\n\n"
-
-		"\t# Среднеквадратичная ошибка (стандартное отклонение остатков)\n"
+		
+		"\t# Стандартное отклонение остатков\n"
 		"\tsigma = np.sqrt(np.sum(residuals ** 2) / (n - 2))\n\n"
-
+		
 		"\t# Погрешности параметров\n"
 		"\tx_mean = np.mean(x)\n"
 		"\tS_xx = np.sum((x - x_mean) ** 2)\n\n"
-
-		"\ta_err = sigma / np.sqrt(S_xx)\n"
-		"\tb_err = sigma * np.sqrt(1 / n + x_mean ** 2 / S_xx)\n\n"
-
+		
+		"\tslope_err = sigma / np.sqrt(S_xx)\n"
+		"\tintercept_err = sigma * np.sqrt(1 / n + x_mean ** 2 / S_xx)\n\n"
+		
 		"\t# Коэффициент детерминации R²\n"
 		"\tss_total = np.sum((y - np.mean(y)) ** 2)\n"
 		"\tss_residual = np.sum(residuals ** 2)\n"
 		"\tr_squared = 1 - (ss_residual / ss_total)\n\n"
-
-		"\tequation = f\"y = ({a:.4f} ± {a_err:.4f})x + ({b:.4f} ± {b_err:.4f})\"\n\n"
-
-		"\treturn a, b, a_err, b_err, r_squared, equation\n\n"
-
-	"def plot_regression(x, y):\n"
-		"\t\"\"\"\n"
-		"\tСтроит график точек, линию регрессии и выводит статистику.\n"
-		"\t\"\"\"\n"
-		"\t# Вычисляем параметры регрессии\n"
-		"\ta, b, a_err, b_err, r_squared, equation = linear_regression_with_errors(x, y)\n\n"
 		
-		"\t# Создаём график\n"
-		"\tplt.figure(figsize=(10, 6))\n"
-		"\tplt.scatter(x, y, color='blue', label='Данные')\n\n"
+		"\treturn slope, intercept, slope_err, intercept_err, r_squared\n\n"
+
+	"def plot_regression_with_outliers(x, y, threshold=2.5):\n"
+		"\t\"\"\"\n"
+		"\tСтроит график с выделением выбросов и линией регрессии\n"
+		"\t\"\"\"\n"
+		"\t# Обнаруживаем выбросы\n"
+		"\toutlier_mask = detect_outliers(x, y, threshold)\n\n"
 		
-		"\t# Линия регрессии\n"
+		"\t# Выполняем регрессию без выбросов\n"
+		"\tclean_x = x[~outlier_mask]\n"
+		"\tclean_y = y[~outlier_mask]\n\n"
+		
+		"\tslope, intercept, slope_err, intercept_err, r_squared = linear_regression_with_errors(clean_x, clean_y)\n\n"
+		
+		"\t# Создаем график\n"
+		"\tplt.figure(figsize=(10, 6))\n\n"
+		
+		"\t# Рисуем нормальные точки (синие)\n"
+		"\tplt.scatter(clean_x, clean_y, color='blue', label='Нормальные точки')\n\n"
+		
+		"\t# Рисуем выбросы (красные)\n"
+		"\tif np.any(outlier_mask):\n"
+			"\t\tplt.scatter(x[outlier_mask], y[outlier_mask], color='red', label='Выбросы')\n\n"
+		
+		"\t# Рисуем линию регрессии\n"
 		"\tx_fit = np.linspace(min(x), max(x), 100)\n"
-		"\ty_fit = a * x_fit + b\n"
-		"\tplt.plot(x_fit, y_fit, color='red', label=f'МНК: {equation}')\n\n"
+		"\ty_fit = slope * x_fit + intercept\n"
+		"\tplt.plot(x_fit, y_fit, color='green', label=f'МНК: y = ({slope:.3f}±{slope_err:.3f})x + ({intercept:.3f}±{intercept_err:.3f})')    #\\nR² = {r_squared:.3f}\n\n" 
 		
-		"\t# Настройки графика\n"
+		"\t# Настраиваем график\n"
 		"\tplt.xlabel('итераций в цикле', fontsize=12)\n"
 		"\tplt.ylabel('такты синхронизации на весь цикл', fontsize=12)\n"
-		"\tplt.title('Линейная регрессия с погрешностями параметров для измерения CPE', fontsize=14)\n"
-		"\tplt.legend(fontsize=12)\n"
+		"\tplt.title('Линейная регрессия с выделением выбросов', fontsize=14)\n"
+		"\tplt.legend(fontsize=10)\n"
 		"\tplt.grid(True, linestyle='--', alpha=0.6)\n\n"
 		
-		"\t# Вывод статистики в консоль\n"
-		"\tprint(\"Результаты регрессии:\")\n"
-		"\tprint(f\"Угловой коэффициент (a) = {a:.4f} ± {a_err:.4f}\")\n"
-		"\tprint(f\"Смещение (b) = {b:.4f} ± {b_err:.4f}\")\n"
-		"\tprint(f\"Коэффициент детерминации R² = {r_squared:.4f}\")\n"
-		"\tprint(f\"Уравнение: {equation}\")\n"
-		"\tplt.savefig('plot_cpe.png')\n"
-		"\t#plt.show()\n\n\n"
+		"\t# Выводим статистику\n"
+		"\tprint(\"=== Результаты регрессии ===\")\n"
+		"\tprint(f\"Угловой коэффициент: {slope:.5f} ± {slope_err:.5f}\")\n"
+		"\tprint(f\"Смещение: {intercept:.5f} ± {intercept_err:.5f}\")\n"
+		"\t#print(f\"Коэффициент детерминации R²: {r_squared:.5f}\")\n"
+		"\tprint(f\"Обнаружено выбросов: {np.sum(outlier_mask)} из {len(x)} точек\")\n\n"
+		
+		"\tplt.tight_layout()\n"
+		"\tplt.savefig('plot_cpe.png')\n\n"
+
+	"# Пример использования\n"
+	"if __name__ == \"__main__\":\n\n"
+		
+		"\tx = np.array([");
 
 
-		"# Пример использования\n"
-		"# Пример данных (замените на свои)\n"
-		"x = np.array([");
+	for (size_t index = 0; index < max_index; index++)
+	{
+		fprintf (file_plot, "%7ld, ", (tests[index]).iterations);
+	}
 
-		// "plot_regression(x, y)\n"
+	fprintf (file_plot, "])\n"
+						"\ty = np.array([");
 
-		for (size_t index = 0; index < max_index; index++)
-		{
-			fprintf (file_plot, "%7ld, ", (tests[index]).iterations);
-		}
+	for (size_t index = 0; index < max_index; index++)
+	{
+		fprintf (file_plot, "%7ld, ", (tests[index]).ticks);
+	}
 
-		fprintf (file_plot, "])\n"
-							"y = np.array([");
-
-		for (size_t index = 0; index < max_index; index++)
-		{
-			fprintf (file_plot, "%7ld, ", (tests[index]).ticks);
-		}
-
-		fprintf (file_plot, "])\n\n"
-							"plot_regression(x, y)\n");
+	fprintf (file_plot, "])\n\n"
+						"\tplot_regression_with_outliers(x, y, threshold=2.5)\n");
 
 	return NOT_ERROR;
 }
 
 #endif
 //---------------------------------------------------------------------------------------------------------------------------
+
+static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* word, element_in_cash_t* ptr_word_from_cash)
+{
+	assert (word);
+	assert (ptr_word_from_cash);
+
+	element_in_cash_t* elements_in_cash = cash_with_words.elements_in_cash;
+
+	for (size_t index_el = 0; index_el < SIZE_CASH_WITH_WORDS; index_el++)
+	{
+		element_in_cash_t element = elements_in_cash[index_el];
+
+		char* word_el = element.word;
+		if (word_el == NULL) {break;}
+
+		if (compare_element (word, word_el))
+		{
+			*ptr_word_from_cash = element;
+
+			return FIND_IN_CASH;
+		}
+	}
+
+	return NOT_FIND_IN_CASH;
+}
 

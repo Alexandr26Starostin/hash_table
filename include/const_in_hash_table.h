@@ -4,8 +4,17 @@
 #define PRINT_INF_ABOUT_HASH_FUNC
 #define TEST_PROGRAM
 
+#define DEBUG_CRC32_
+
 //typedef long data_t; 
 typedef char* data_t;
+
+const __u_int POLYNOMIAL   		         = 0x04C11DB7;
+const __u_int MASK_HIGH_BIT_IN_REGISTER  = 0x80000000;
+const __u_int MASK_FIRST_BIT             = 0x00000001;
+const char    MASK_HIGH_BIT_BYTE         = (char) 0x80;
+const size_t  COUNT_SHIFTING_BITS        = 1;
+const size_t  BITS_IN_BYTE               = 8;
 
 const size_t SIZE_OF_DELETE_LIST       = 0;
 const size_t MIN_SIZE_OF_LIST          = 1;
@@ -21,7 +30,8 @@ const size_t NOT_FIND_ELEMENT          = 0;
 const size_t COUNT_ADDITIONAL_ELEMENT  = 1;
 
 const size_t COUNT_BUCKETS             = 727;
-const size_t COUNT_REPEATING           = 3;
+const size_t COUNT_REPEATING           = 15;
+const size_t SIZE_CASH_WITH_WORDS      = 3;
 //const char*  POISON                   = "\0";
 
 enum errors_in_hash_table_t
@@ -50,6 +60,12 @@ enum find_flag_t
 {
 	NOT_FIND_FLAG = 0,
 	FIND_FLAG     = 1
+};
+
+enum search_in_cash_t
+{
+	NOT_FIND_IN_CASH = 0,
+	FIND_IN_CASH     = 1
 };
 
 struct node_t
@@ -96,6 +112,19 @@ struct inf_cpe_t
 	inf_test_t* tests;
 };
 #endif
+
+struct element_in_cash_t
+{
+	char*  word;
+	size_t index_bucket;
+	size_t count_words_in_text;
+};
+
+struct cash_t
+{
+	size_t index_free;
+	element_in_cash_t elements_in_cash[SIZE_CASH_WITH_WORDS];
+};
 
 
 #endif

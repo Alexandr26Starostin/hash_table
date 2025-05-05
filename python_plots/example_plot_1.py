@@ -40,7 +40,7 @@ def plot_points_with_regression(x, y):
     plt.title('График точек и линия регрессии')
     plt.legend()
     plt.grid(True)
-    plt.savefig('plot.png')
+    plt.savefig('plot_1.png')
     # plt.show()
 	
     # Выводим параметры

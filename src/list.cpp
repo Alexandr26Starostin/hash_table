@@ -7,7 +7,6 @@
 #include "list.h"
 
 static errors_in_hash_table_t dtor_nodes      (node_t* element);
-static bool 				  compare_element (data_t element_1, data_t element_2);   //data_t == char*
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -214,7 +213,7 @@ errors_in_hash_table_t get_element_from_index (list_t* ptr_list, size_t find_ind
 	return NOT_ERROR;
 }
 
-static bool compare_element (data_t element_1, data_t element_2)
+bool compare_element (data_t element_1, data_t element_2)
 {
 	//data_t == char*
 	assert (element_1);

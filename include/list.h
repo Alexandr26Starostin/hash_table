@@ -7,5 +7,6 @@ errors_in_hash_table_t add_element_in_list           (list_t* ptr_list, data_t d
 errors_in_hash_table_t print_list 		   			 (list_t* ptr_list);
 size_t                 find_element_in_list			 (list_t* ptr_list, data_t data);
 errors_in_hash_table_t get_element_from_index        (list_t* ptr_list, size_t find_index_element, data_t* ptr_return_data);
+bool 				   compare_element               (data_t element_1, data_t element_2);   //data_t == char*
 
 #endif
