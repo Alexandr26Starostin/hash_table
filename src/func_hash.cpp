@@ -5,9 +5,10 @@
 #include "const_in_hash_table.h"
 #include "func_hash.h"
 
-static __u_int inversion_bits (__u_int register_remainder);
+static __u_int inversion_bits      (__u_int register_remainder);
+static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str);
 
-//--------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------
 
 size_t hash_sum_ascii (char* str)
 {
@@ -98,6 +99,8 @@ size_t hash_average (char* str)
 	return (sum / count_symbols) % COUNT_BUCKETS;
 }
 
+//------------------------------------------------------------------------------------------------------------------------
+
 // 0 - 0000
 // 1 - 0001
 // 2 - 0010
@@ -124,12 +127,11 @@ size_t hash_crc32 (char* str)
 	#endif
 
 	__u_int register_remainder = 0;
-	__u_int high_bit           = 0;
 
 	size_t count_bytes_in_str = strlen (str);
 	size_t additional_bytes   = sizeof (__u_int);
 
-	char byte = '\0';
+	char str_null[MAX_LEN_WORD] = "\0";
 
 	if (count_bytes_in_str >= sizeof (__u_int))
 	{
@@ -152,78 +154,9 @@ size_t hash_crc32 (char* str)
 	#ifdef DEBUG_CRC32
 	printf ("register_remainder ==       %32b\n", register_remainder);
 	#endif
-
-	//-------------------------------------------------------------------------------------------	
-
-	for (size_t index_byte = 0; index_byte < count_bytes_in_str; index_byte++)
-	{
-		byte = str[index_byte];
-
-		char mask_next_bit = MASK_HIGH_BIT_BYTE;
-
-		for (long number_bit = sizeof (char) - 1; number_bit >= 0; number_bit--)
-		{
-			high_bit = register_remainder & MASK_HIGH_BIT_IN_REGISTER;
-
-			register_remainder <<= COUNT_SHIFTING_BITS;
-			register_remainder += (byte & mask_next_bit) >> number_bit;
-			mask_next_bit >>= COUNT_SHIFTING_BITS;
-
-			#ifdef DEBUG_CRC32
-			printf ("register_remainder ==       %32b\n", register_remainder);
-			printf ("high_bit ==                 %32b\n", high_bit);
-			#endif
-
-			if (high_bit)
-			{
-				register_remainder = inversion_bits (register_remainder);
-				#ifdef DEBUG_CRC32
-				printf ("register_remainder ==       %32b\n\n", register_remainder);
-				#endif
-			}
-
-			#ifdef DEBUG_CRC32
-			printf ("----");
-			getchar ();
-			#endif
-		}
-	}
-
-	//-----------------------------------------------------------------------------------------
-
-	for (size_t index_byte = 0; index_byte < additional_bytes; index_byte++)
-	{
-		byte = '\0';
-
-		char mask_next_bit = MASK_HIGH_BIT_BYTE;
-
-		for (long number_bit = sizeof (char) - 1; number_bit >= 0; number_bit--)
-		{
-			high_bit = register_remainder & MASK_HIGH_BIT_IN_REGISTER;
-
-			register_remainder <<= COUNT_SHIFTING_BITS;
-			register_remainder += (byte & mask_next_bit) >> number_bit;
-			mask_next_bit >>= COUNT_SHIFTING_BITS;
-
-			#ifdef DEBUG_CRC32
-			printf ("register_remainder ==       %32b\n", register_remainder);
-			printf ("high_bit ==                 %32b\n", high_bit);
-			#endif
-
-			if (high_bit)
-			{
-				register_remainder = inversion_bits (register_remainder);
-				#ifdef DEBUG_CRC32
-				printf ("register_remainder ==       %32b\n\n", register_remainder);
-				#endif
-			}
-
-			#ifdef DEBUG_CRC32
-			printf ("----");
-			getchar ();
-			#endif
-		}
-	}
+	
+	register_remainder = calculate_remainder (register_remainder, count_bytes_in_str, str);
+	register_remainder = calculate_remainder (register_remainder, additional_bytes,   str_null);
 
 	#ifdef DEBUG_CRC32
 	printf ("----");
@@ -233,11 +166,49 @@ size_t hash_crc32 (char* str)
 	return (size_t) (register_remainder % COUNT_BUCKETS);
 }
 
+static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str)
+{
+	__u_int high_bit = 0;
+
+	for (size_t index_byte = 0; index_byte < max_index_byte; index_byte++)
+	{
+		char byte = str[index_byte];
+
+		char mask_next_bit = MASK_HIGH_BIT_BYTE;
+
+		for (long number_bit = sizeof (char) - 1; number_bit >= 0; number_bit--)
+		{
+			high_bit = register_remainder & MASK_HIGH_BIT_IN_REGISTER;
+
+			register_remainder <<= COUNT_SHIFTING_BITS;
+			register_remainder += (byte & mask_next_bit) >> number_bit;
+			mask_next_bit >>= COUNT_SHIFTING_BITS;
+
+			#ifdef DEBUG_CRC32
+			printf ("register_remainder ==       %32b\n", register_remainder);
+			printf ("high_bit ==                 %32b\n", high_bit);
+			#endif
+
+			if (high_bit)
+			{
+				register_remainder = inversion_bits (register_remainder);
+				#ifdef DEBUG_CRC32
+				printf ("register_remainder ==       %32b\n\n", register_remainder);
+				#endif
+			}
+
+			#ifdef DEBUG_CRC32
+			printf ("----");
+			getchar ();
+			#endif
+		}
+	}
+
+	return register_remainder;
+}
+
 static __u_int inversion_bits (__u_int register_remainder)
 {
-	//__u_int new_register = 0;
-	//__u_int polynomial   = POLYNOMIAL;
-
 	__u_int mask_next_bit = MASK_FIRST_BIT;
 
 	__u_int next_bit_in_polynomial   = 0;
@@ -290,17 +261,7 @@ static __u_int inversion_bits (__u_int register_remainder)
 	return register_remainder;
 }
 
-
-
-
-
-
-
-
-
-
-
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------------------
 
 errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, char* str_name_func_hash, char* name_inf_file)
 {
