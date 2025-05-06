@@ -756,7 +756,7 @@ static errors_in_hash_table_t fill_file_plot (FILE* file_plot, inf_cpe_t cpe_res
 		"\t# Настраиваем график\n"
 		"\tplt.xlabel('итераций в цикле', fontsize=12)\n"
 		"\tplt.ylabel('такты синхронизации на весь цикл', fontsize=12)\n"
-		"\tplt.title('Линейная регрессия с выделением выбросов', fontsize=14)\n"
+		"\tplt.title('Линейная регрессия с выделением выбросов для измерения CPE', fontsize=14)\n"
 		"\tplt.legend(fontsize=10)\n"
 		"\tplt.grid(True, linestyle='--', alpha=0.6)\n\n"
 		
