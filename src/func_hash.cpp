@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <immintrin.h>
 
 #include "const_in_hash_table.h"
 #include "func_hash.h"
 
 static __u_int inversion_bits      (__u_int register_remainder);
 static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str);
+
+//extern "C" size_t calculate_remainder_asm (char* str_for_crc32); 
 
 //---------------------------------------------------------------------------------------------------------
 
@@ -146,7 +149,7 @@ size_t hash_crc32 (char* str)
 			register_remainder <<= BITS_IN_BYTE;
 		}
 
-		register_remainder <<= (sizeof (__u_int) - count_bytes_in_str) * BITS_IN_BYTE;
+		register_remainder = (__u_int) ((sizeof (__u_int) - count_bytes_in_str) * BITS_IN_BYTE);
 
 		additional_bytes = count_bytes_in_str;
 	}
@@ -314,7 +317,7 @@ errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, char* str_
 					   "load\\_factor = %lg\n\n"
 					   "\\end{document}\n", ((double) load_factor) / COUNT_BUCKETS);
 
-	printf ("load_factor = %lg\n", ((double) load_factor) / COUNT_BUCKETS);
+	//printf ("load_factor = %lg\n", ((double) load_factor) / COUNT_BUCKETS);
 
 	if (fclose (inf_file) == EOF)
 	{
@@ -326,3 +329,14 @@ errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, char* str_
 
 	return NOT_ERROR;
 }
+
+//----------------------------------------------------------------------------------------------------------------------------
+
+// size_t hash_crc32_asm (char* str)
+// {
+// 	assert (str);
+
+// 	size_t register_remainder = calculate_remainder_asm (str);
+
+// 	return (size_t) (register_remainder % COUNT_BUCKETS);
+// }

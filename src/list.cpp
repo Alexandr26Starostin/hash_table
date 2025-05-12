@@ -2,11 +2,15 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <immintrin.h>
 
 #include "const_in_hash_table.h"
+#include "text_and_files.h"
 #include "list.h"
 
-static errors_in_hash_table_t dtor_nodes      (node_t* element);
+static errors_in_hash_table_t dtor_nodes (node_t* element);
+
+errors_in_hash_table_t print_m256i (__m256i elem);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -26,20 +30,22 @@ errors_in_hash_table_t ctor_list (list_t* ptr_list)
 	first_element -> next_element    = NULL;
 	first_element -> counter_element = MIN_COUNTER_ELEMENT;
 
-	first_element -> data = (char*) calloc (MAX_LEN_WORD + COUNT_ADDITIONAL_ELEMENT, sizeof (char));
+	first_element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
 	if (first_element -> data == NULL)
 	{
 		printf ("Error in %s:%d\nHave not memory for first_element -> data in try to create list\n\n", __FILE__, __LINE__);
 		return NOT_MEMORY_FOR_ELEMENT;
 	}
-	
-	if (strncpy(first_element -> data, "\0", MAX_LEN_WORD) == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Failed strncpy();\n\n", __FILE__, __LINE__);
 
-		return FAILED_STRNCPY;
-	}
+	initialize_aligned_alloc (first_element -> data);
+	
+	// if (strncpy(first_element -> data, "\0", MAX_LEN_WORD) == NULL)
+	// {
+	// 	printf ("Error in %s:%d\n"
+	// 			"Failed strncpy();\n\n", __FILE__, __LINE__);
+
+	// 	return FAILED_STRNCPY;
+	// }
 
 	ptr_list -> head = first_element;
 	ptr_list -> tail = first_element;
@@ -78,8 +84,12 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 
 	node_t* find_element = ptr_list -> head;
 
+	//print_str_32_bytes (data);
+
 	while (find_element != NULL)
 	{
+		//print_str_32_bytes (find_element -> data);
+
 		if (compare_element (find_element -> data, data))  //find_element -> data == data
 		{
 			(find_element -> counter_element)++;   //find data in list
@@ -101,12 +111,14 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 	element -> next_element    = NULL;
 	element -> counter_element = MIN_COUNTER_ELEMENT;
 
-	element -> data = (char*) calloc (MAX_LEN_WORD + COUNT_ADDITIONAL_ELEMENT, sizeof (char));
+	element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
 	if (element -> data == NULL)
 	{
 		printf ("Error in %s:%d\nHave not memory for element -> data in try to add element (%s) in listt\n\n", __FILE__, __LINE__, data);
 		return NOT_MEMORY_FOR_ELEMENT;
 	}
+
+	initialize_aligned_alloc (element -> data);
 
 	if (strncpy(element -> data, data, MAX_LEN_WORD) == NULL)
 	{
@@ -216,28 +228,20 @@ errors_in_hash_table_t get_element_from_index (list_t* ptr_list, size_t find_ind
 bool compare_element (data_t element_1, data_t element_2)
 {
 	//data_t == char*
+	//data_t == char[32]
+	
 	assert (element_1);
 	assert (element_2);
+
+	#ifndef INTRINSICS
 
 	size_t index = 0;
 
 	char symbol_1 = '\0';
 	char symbol_2 = '\0';
 
-	while ((symbol_1 = element_1[index]) != '\0' and /*symbol_1 != '\n' and symbol_1 != ' ' and*/
-		   (symbol_2 = element_2[index]) != '\0' /*and symbol_2 != '\n' and symbol_2 != ' '*/)
-
+	while ((symbol_1 = element_1[index]) != '\0' and (symbol_2 = element_2[index]) != '\0')
 	{
-		// if (symbol_1 >= 'A' and symbol_1 <= 'Z')
-		// {
-		// 	symbol_1 = (char) (symbol_1 - 'A' + 'a');
-		// }
-
-		// if (symbol_2 >= 'A' and symbol_2 <= 'Z')
-		// {
-		// 	symbol_2 = (char) (symbol_2 - 'A' + 'a');
-		// }
-
 		if (symbol_1 - symbol_2)
 		{
 			return false;   //element_1 != element_2
@@ -250,4 +254,45 @@ bool compare_element (data_t element_1, data_t element_2)
 		return true;     //element_1 == element_2
 
 	return false;
+
+	//------------------------------------------------------------------------------------------
+
+	#else
+
+	//long* ptr_1_elem = (long*) element_1;
+	//long* ptr_2_elem = (long*) element_2;
+	
+	//__m256i first_element  = _mm256_set_epi64x (ptr_1_elem[0], ptr_1_elem[1], ptr_1_elem[2], ptr_1_elem[3]);
+	//__m256i second_element = _mm256_set_epi64x (ptr_2_elem[0], ptr_2_elem[1], ptr_2_elem[2], ptr_2_elem[3]);
+
+	// print_m256i (first_element);
+	// print_m256i (second_element);
+
+	__m256i result_cmp = _mm256_cmpeq_epi64 (*(__m256i*) element_1, *(__m256i*) element_2);
+
+	//print_m256i (result_cmp);
+
+	//printf ("\n");
+
+	//getchar ();
+
+	if (_mm256_movemask_epi8 (result_cmp) == MASK_IF_ELEM_EQUAL)
+		return true;
+
+	return false;
+
+	#endif
+}
+
+errors_in_hash_table_t print_m256i (__m256i elem)
+{
+	char* str = (char*) &elem;
+
+	for (size_t index = 0; index < MAX_BYTES_IN_WORD; index++)
+	{
+		printf ("%2X", str[index]);
+	}
+	printf ("\n\n");
+
+	return NOT_ERROR;
 }

@@ -1,3 +1,5 @@
 build
 hash_table
 prepare_file
+*.data
+*.old

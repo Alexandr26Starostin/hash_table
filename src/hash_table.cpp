@@ -3,11 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <x86intrin.h>
-//#include <immintrin.h>
 
 #include "const_in_hash_table.h"
 #include "list.h"
 #include "func_hash.h"
+#include "text_and_files.h"
 #include "hash_table.h"
 
 #define CLOSE_FILE_(file, name_file)                  					\
@@ -41,29 +41,29 @@
 																		\
 		return code_error;										     	\
 	}
-	
+
 static errors_in_hash_table_t ctor_lists_in_hash_table (list_t* hash_table);
-static errors_in_hash_table_t get_word_from_file       (FILE* file_words, char* word);
 static errors_in_hash_table_t fill_hash_table          (int argc, char** argv, inf_hash_table_t* ptr_inf_hash_table, FILE* file_words);
-static errors_in_hash_table_t find_name_func_hash      (int argc, char** argv, size_t (**ptr_func_hash) (char*));
-static size_t                 len_file                 (FILE* file);  
-static errors_in_hash_table_t get_symbols_for_search   (int argc, char** argv, char** ptr_symbols_from_file);
-static errors_in_hash_table_t get_words_for_search 	   (inf_for_search_t* ptr_inf_for_search);
-static errors_in_hash_table_t fill_words_for_search    (inf_for_search_t* ptr_inf_for_search);
-       errors_in_hash_table_t print_words_for_search   (char** words_for_search, size_t count_words);
+
+#ifdef PRINT_WORDS_FOR_SEARCH
+static errors_in_hash_table_t print_words_for_search   (char** words_for_search, size_t count_words);
+#endif
 
 #ifdef TEST_PROGRAM
-static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
+	static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
 #else
-static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
+	static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
 #endif
 
 #ifdef PRINT_INF_ABOUT_HASH_FUNC
 	static errors_in_hash_table_t get_inf_func_hash (int argc, char** argv, list_t* hash_table);
 #endif
 
+#ifdef PRINT_CPE_RESULT
+	static errors_in_hash_table_t print_cpe_result   (inf_cpe_t cpe_result);
+#endif
+
 #ifdef TEST_PROGRAM
-	       errors_in_hash_table_t print_cpe_result   (inf_cpe_t cpe_result);
 	static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result);
 	static errors_in_hash_table_t fill_file_plot     (FILE* file_plot, inf_cpe_t cpe_result);
 #endif
@@ -161,7 +161,7 @@ static errors_in_hash_table_t fill_hash_table (int argc, char** argv, inf_hash_t
 
 	errors_in_hash_table_t status = NOT_ERROR;
 
-	char word[MAX_LEN_WORD] = "";
+	char word[MAX_BYTES_IN_WORD] = "\0";
 
 	size_t (*func_hash) (char*) = NULL;
 	list_t* hash_table          = ptr_inf_hash_table -> hash_table;
@@ -175,7 +175,11 @@ static errors_in_hash_table_t fill_hash_table (int argc, char** argv, inf_hash_t
 	{
 		get_word_from_file (file_words, word);   //return NOT_ERROR;
 	
+		//print_str_32_bytes (word);
+
 		size_t index_bucket = func_hash (word);
+
+		//printf ("%s\t%ld\n", word, index_bucket);
 
 		status = add_element_in_list (hash_table + index_bucket, word);
 		if (status)
@@ -187,6 +191,8 @@ static errors_in_hash_table_t fill_hash_table (int argc, char** argv, inf_hash_t
 		}
 	}
 
+	//printf ("\n");
+
 	#ifdef PRINT_INF_ABOUT_HASH_FUNC
 		status = get_inf_func_hash (argc, argv, hash_table);
 		if (status) {return status;}
@@ -195,78 +201,6 @@ static errors_in_hash_table_t fill_hash_table (int argc, char** argv, inf_hash_t
 	ptr_inf_hash_table -> func_hash = func_hash;
 
 	return status;
-}
-
-static errors_in_hash_table_t get_word_from_file (FILE* file_words, char* word)
-{
-	assert (file_words);
-	assert (word);
-
-	fgets (word, MAX_LEN_WORD, file_words);
-
-	char   symbol = '\0';
-	size_t index  = 0;
-
-	for (; index < MAX_LEN_WORD; index++)
-	{
-		symbol = word[index];
-
-		if (symbol == '\n')
-		{
-			word[index] = '\0';
-			return NOT_ERROR;
-		}
-
-		if (symbol == '\0')
-		{
-			return NOT_ERROR;
-		}
-	}
-
-	word[index - 1] = '\0';
-
-	return NOT_ERROR;
-}
-
-static errors_in_hash_table_t find_name_func_hash (int argc, char** argv, size_t (**ptr_func_hash) (char*))
-{
-	assert (argv);
-	assert (ptr_func_hash);
-
-	FIND_FLAG_("-hash", "Not find flag: -hash <name_func_hash>", NOT_FIND_FLAG_HASH)
-
-	char* name_func_hash = argv[index_argc];
-
-	if (! strcmp (name_func_hash, "hash_djb2"))
-		*ptr_func_hash = hash_djb2;
-
-	else if (! strcmp (name_func_hash, "hash_sum_of_squares"))
-		*ptr_func_hash = hash_sum_of_squares;
-
-	else if (! strcmp (name_func_hash, "hash_sum_ascii"))     
-		*ptr_func_hash = hash_sum_ascii;
-
-	else if (! strcmp (name_func_hash, "hash_ascii_first_symbol"))     
-		*ptr_func_hash = hash_ascii_first_symbol;
-
-	else if (! strcmp (name_func_hash, "hash_mul_all_ascii"))    
-		*ptr_func_hash = hash_mul_all_ascii;
-
-	else if (! strcmp (name_func_hash, "hash_average"))     
-		*ptr_func_hash = hash_average;
-
-	else if (! strcmp (name_func_hash, "hash_crc32"))     
-		*ptr_func_hash = hash_crc32;
-
-	else
-	{
-		printf ("Error in %s:%d\n"
-				"Not defined func_hash with name: %s\n\n", __FILE__, __LINE__, name_func_hash);
-
-		return NOT_DEFINED_NAME_FUNC_HASH;
-	}
-
-	return NOT_ERROR;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -297,174 +231,32 @@ errors_in_hash_table_t use_hash_table (int argc, char** argv, inf_hash_table_t* 
 
 	inf_for_search_t inf_for_search = {};
 
-	errors_in_hash_table_t status = get_symbols_for_search (argc, argv, &(inf_for_search.symbols_from_file));
+	errors_in_hash_table_t status = get_words_for_search (argc, argv, &inf_for_search);
 	if (status) {return status;}
 
-	status = get_words_for_search (&inf_for_search);
-	if (status)
-	{
-		free (inf_for_search.symbols_from_file);   
-		return status;
-	}
+	#ifdef PRINT_WORDS_FOR_SEARCH
+	print_words_for_search (inf_for_search.words_for_search, inf_for_search.count_words);
+	#endif
 
-	//print_words_for_search (inf_for_search.words_for_search, inf_for_search.count_words);
-
+	#ifdef TEST_PROGRAM
 	find_words_in_hash_table (argc, argv, *ptr_inf_hash_table, inf_for_search);   //return NOT_ERROR;
+	#else
+	find_words_in_hash_table (*ptr_inf_hash_table, inf_for_search);   //return NOT_ERROR;
+	#endif
 
-	free (inf_for_search.words_for_search);
-	free (inf_for_search.symbols_from_file);
-
-	return NOT_ERROR;
-}
-
-static errors_in_hash_table_t get_symbols_for_search (int argc, char** argv, char** ptr_symbols_from_file)
-{
-	assert (argv);
-	assert (ptr_symbols_from_file);
-
-	FIND_FLAG_("-find", "Not find flag: -find <file_with_words_for_search>", NOT_FIND_FLAG_FIND)
-
-	FILE* file_search = fopen (argv[index_argc], "r");
-	if (file_search == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Cannot open file_search\n"
-				"Error in fopen(); or you don't write name of file with words for search:"
-				"-find <file_with_words_for_search>\n\n", __FILE__, __LINE__);
-
-		return CANNOT_OPEN_FILE;
-	}
-
-	size_t count_bytes = len_file (file_search);
-
-	char* symbols_from_file = (char*) calloc (count_bytes + COUNT_ADDITIONAL_ELEMENT , sizeof (char));	
-	if (symbols_from_file == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Have not memory for symbols_from_file from calloc\n\n", __FILE__, __LINE__);
-
-		CLOSE_FILE_(file_search, "file_search")
-
-		return NOT_MEMORY_FROM_CALLOC;
-	}
-
-	size_t count_read_symbols = fread (symbols_from_file, sizeof (char), count_bytes, file_search);
-	if (count_read_symbols != count_bytes)
-	{
-		printf ("Error in %s:%d\n"
-				"fread: count_read_symbols != count_bytes (count_all_symbols)\n\n", __FILE__, __LINE__);
-
-		free (symbols_from_file);
-
-		CLOSE_FILE_(file_search, "file_search")
-
-		return ERROR_IN_FREAD;
-	}
-
-	CLOSE_FILE_(file_search, "file_search")
-
-	*ptr_symbols_from_file = symbols_from_file;
+	delete_words_for_search (inf_for_search);
 
 	return NOT_ERROR;
 }
 
-static size_t len_file (FILE* file)     
-{  
-    assert (file);
-
-    fseek (file, 0, SEEK_END);
-    const size_t count_memory = ftell (file);
-    fseek (file, 0, SEEK_SET);
-
-    return count_memory;
-}
-
-static errors_in_hash_table_t get_words_for_search (inf_for_search_t* ptr_inf_for_search)
-{
-	assert (ptr_inf_for_search);
-
-	char** words_for_search = (char**) calloc (MIN_SIZE_WORDS_FOR_SEARCH, sizeof (char*));
-	if (words_for_search == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Have not memory for words_for_search from calloc\n\n", __FILE__, __LINE__);
-
-		return NOT_MEMORY_FROM_CALLOC;
-	}
-
-	size_t count_words = 0;
-
-	ptr_inf_for_search -> words_for_search = words_for_search;
-	ptr_inf_for_search -> count_words      = count_words;
-
-	errors_in_hash_table_t status = fill_words_for_search (ptr_inf_for_search);
-	if (status) 
-	{
-		//free (words_for_search);   CANNOT: words_for_search == NULL
-		return status;
-	}
-
-	return NOT_ERROR;
-}
-
-static errors_in_hash_table_t fill_words_for_search (inf_for_search_t* ptr_inf_for_search)
-{
-	assert (ptr_inf_for_search);
-
-	char* symbols_from_file = ptr_inf_for_search -> symbols_from_file;
-	assert (symbols_from_file);
-
-	char** words_for_search = ptr_inf_for_search -> words_for_search;
-	assert (words_for_search);
-
-	size_t size_words_for_search = MIN_SIZE_WORDS_FOR_SEARCH;
-	size_t index_word 			 = 0;
-	size_t index_symbol          = 0;
-	char   symbol                = '\0';
-
-	words_for_search[index_word++] = symbols_from_file;
-
-	for (; (symbol = symbols_from_file[index_symbol]) != '\0'; index_symbol++)
-	{
-		if (symbol != '\n') {continue;}
-
-		//symbol == '\n'
-
-		symbols_from_file[index_symbol] = '\0';
-
-		words_for_search[index_word++] = symbols_from_file + index_symbol + 1;
-
-		if (index_word != size_words_for_search) {continue;}
-
-		//index_word == size_words_for_search
-
-		size_words_for_search *= INCREASE_SIZE_IN_REALLOC;
-
-		words_for_search = (char**) realloc (words_for_search, size_words_for_search * sizeof (char*));
-		
-		if (words_for_search == NULL)
-		{
-			printf ("Error in %s:%d\n"
-					"Not have memory for realloc of words_for_search\n"
-					"index_word == %ld\n\n", __FILE__, __LINE__, index_word);
-
-			return ERROR_IN_REALLOC;
-		}		
-	}
-
-	ptr_inf_for_search -> words_for_search = words_for_search;
-	ptr_inf_for_search -> count_words      = index_word;
-
-	return NOT_ERROR;
-}
-
-errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t count_words)
+#ifdef PRINT_WORDS_FOR_SEARCH
+static errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t count_words)
 {
 	assert (words_for_search);
 
 	printf ("------------------------------------------------------------------------\nwords_for search:\n\n");
 
-	for (size_t index_word; index_word < count_words; index_word++)
+	for (size_t index_word = 0; index_word < count_words; index_word++)
 	{
 		printf ("%s\n", words_for_search[index_word]);
 	}
@@ -473,6 +265,7 @@ errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t c
 
 	return NOT_ERROR;
 }
+#endif
 
 #ifdef TEST_PROGRAM
 static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search)
@@ -483,7 +276,10 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 	assert (inf_hash_table.hash_table);
 	assert (inf_hash_table.func_hash);
 	assert (inf_for_search.words_for_search);
+
+	#ifdef TEST_PROGRAM
 	assert (argv);
+	#endif
 
 	size_t  count_words      = inf_for_search.count_words;
 	size_t  index_bucket     = 0;
@@ -530,19 +326,25 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 			{
 				word = words_for_search[index_word];
 
+				//printf ("%s\n", word);
+
+				//getchar ();
+
 				search_in_cash_t status_cash = search_element_in_cash (cash_with_words, word, &word_from_cash);
 				if (status_cash)
 				{
 					#ifndef TEST_PROGRAM
-					printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n";
+					printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n"
 							"counter_word == %ld\n-----------------------------------------\n\n", 
-							word, word_from_cash.index_bucket, word_from_cash.counter_word);
+							word, word_from_cash.index_bucket, word_from_cash.count_words_in_text);
 					#endif
 
 					continue;
 				}
 
 				index_bucket = func_hash (word);
+
+				//printf ("%s\t%ld\n", word, index_bucket);
 
 				#ifndef TEST_PROGRAM
 				printf ("-----------------------------------------\ninf about search word: %s\n\nindex_bucket == %ld\n", word, index_bucket);				
@@ -582,8 +384,13 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 		}
 	}
 
-	//print_cpe_result   (cpe_result);
+	#ifdef PRINT_CPE_RESULT
+	print_cpe_result   (cpe_result);
+	#endif
+
+	#ifdef TEST_PROGRAM
 	analyze_cpe_result (argc, argv, cpe_result);
+	#endif
 
 	free (tests);
 	#endif
@@ -592,9 +399,9 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 }
 
 //---------------------------------------------------------------------------------------------------------------------------
-#ifdef TEST_PROGRAM
+#ifdef PRINT_CPE_RESULT
 
-errors_in_hash_table_t print_cpe_result (inf_cpe_t cpe_result)
+static errors_in_hash_table_t print_cpe_result (inf_cpe_t cpe_result)
 {
 	inf_test_t* tests = cpe_result.tests;
 	assert (tests);
@@ -615,7 +422,9 @@ errors_in_hash_table_t print_cpe_result (inf_cpe_t cpe_result)
 
 	return NOT_ERROR;
 }
+#endif
 
+#ifdef TEST_PROGRAM
 static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result)
 {
 	assert (argv);
@@ -803,6 +612,10 @@ static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* wo
 	assert (word);
 	assert (ptr_word_from_cash);
 
+	search_in_cash_t status = NOT_FIND_IN_CASH;
+
+	#ifndef INLINE_ASM
+
 	element_in_cash_t* elements_in_cash = cash_with_words.elements_in_cash;
 
 	for (size_t index_el = 0; index_el < SIZE_CASH_WITH_WORDS; index_el++)
@@ -820,6 +633,110 @@ static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* wo
 		}
 	}
 
-	return NOT_FIND_IN_CASH;
+	return status;
+
+	//---------------------------------------------------------------------------------------------
+
+	#else
+
+	bool (*ptr_compare_element) (char*, char*) = compare_element;
+
+	asm volatile (
+		".intel_syntax noprefix\n\t"  //rdi = cash_with_words 			 rsi = word  		rdx = ptr_word_from_cash		
+		//"mov rdi, %[cash]\n\t"
+		//"push r8\n\t"
+
+		"mov rsi, %[word]\n\t"
+		"mov rdx, %[ptr]\n\t"
+
+
+		"mov rbx, %[cash]\n\t"           
+		"add rbx, 8\n\t"                //rbx = elements_in_cash = cash_with_words.elements_in_cash
+		"xor ecx, ecx\n\t"              //rcx = index_el = 0
+		"mov r12, 4\n\t"                //r12 = SIZE_CASH_WITH_WORDS = 4
+
+		// "sub rsp, 24d\n\t"
+		// "mov r9, rsp\n\t"              //r9 = element 
+
+		"check_next_cash:\n\t"
+
+		"push rdx\n\t"
+		"mov rax, rcx\n\t"
+		"mov r15, 24\n\t"
+		"mul r15\n\t"
+		"mov r13, [rbx + rax]\n\t"    //r13 = elements_in_cash[index_el];
+										  //r13 = word_el = element.word;
+		"pop rdx\n\t"
+
+		"test r13, r13\n\t"
+		"jz word_is_null\n\t"
+		//--------------------------------------------------------------------------------------------------------
+      
+		//"push rdi\n\t"
+		"push rsi\n\t"
+		"push rcx\n\t"
+		"push rdx\n\t"
+
+		"mov rdi, r13\n\t"
+		//rsi not changed
+
+		"call %[ptr_func]\n\t"
+
+		"pop rdx\n\t"
+		"pop rcx\n\t"
+		"pop rsi\n\t"
+		//"pop rdi\n\t"
+
+		"test al, al\n\t"
+		"jz not_elem_from_cash\n\t"
+
+		//----------------------------------------------------------------------------------------------------------
+  
+		"push rdx\n\t"
+		"mov rax, rcx\n\t"
+		"mov r15, 24\n\t"
+		"mul r15\n\t"
+		"add r13, rax\n\t"  //r13 = rbx + rcx * 24
+		"pop rdx\n\t"
+
+		"mov r14, [r13]\n\t"
+		"mov [rdx], r14\n\t"
+
+		"mov r14, [r13 + 8]\n\t"
+		"mov [rdx + 8], r14\n\t"
+
+		"mov r14, [r13 + 16]\n\t"
+		"mov [rdx + 16], r14\n\t"      //*ptr_word_from_cash = element;
+
+		"mov %0, 1\n\t"
+		"jmp end_asm\n\t"
+
+		//-----------------------------------------------------------------------------------------------------------
+
+		"not_elem_from_cash:\n\t"
+
+		"inc rcx\n\t"
+		"cmp rcx, r12\n\t"
+		"jnz check_next_cash\n\t"
+
+		"word_is_null:\n\t"
+
+		"mov %0, 0\n\t"
+		"end_asm:\n\t"
+
+		//"pop r8\n\t"
+
+		//-----------------------------------------------------------------------------------------------------
+		:"=r" (status)
+		:[cash] "r" (&cash_with_words), 
+		 [word] "r" (word), 
+		 [ptr]  "r" (ptr_word_from_cash),
+		 [ptr_func] "r" (ptr_compare_element)
+		:"rbx", "rcx", "rdi", "rsi", "rdx", "r12", "r13", "r14", "r15", "rax", "memory", "cc"
+		);
+
+	return status;
+
+	#endif
 }
 

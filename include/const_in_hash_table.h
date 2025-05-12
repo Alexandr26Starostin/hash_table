@@ -1,10 +1,24 @@
 #ifndef CONST_IN_HASH_TABLE_H
 #define CONST_IN_HASH_TABLE_H
 
-#define PRINT_INF_ABOUT_HASH_FUNC
-#define TEST_PROGRAM
+#include <immintrin.h>
 
-#define DEBUG_CRC32_
+#ifdef PRINT_ALL
+	#define PRINT_INF_ABOUT_HASH_FUNC
+	#define PRINT_WORDS_FOR_SEARCH
+	#define PRINT_CPE_RESULT
+	#define TEST_PROGRAM
+#endif
+
+#define INTRINSICS
+
+#define INLINE_ASM
+
+// #define PRINT_INF_ABOUT_HASH_FUNC
+
+//#define TEST_PROGRAM
+
+//#define DEBUG_CRC32_
 
 //typedef long data_t; 
 typedef char* data_t;
@@ -22,16 +36,21 @@ const size_t COUNT_NODES_IN_CALLOC     = 1;
 const size_t MIN_COUNTER_ELEMENT       = 1;
 const data_t INITIALIZATION_OF_DATA_T  = 0;
 const size_t INDEX_FILE_WORDS_IN_ARGV  = 1;
-const size_t MAX_LEN_WORD              = 32;
+const size_t MAX_LEN_WORD              = 31;
+const size_t MAX_BYTES_IN_WORD         = 32;
 const int    MIN_VALUE_INDEX_ARGC      = 2;
 const size_t MIN_SIZE_WORDS_FOR_SEARCH = 64;
 const size_t INCREASE_SIZE_IN_REALLOC  = 2;
 const size_t NOT_FIND_ELEMENT          = 0;
 const size_t COUNT_ADDITIONAL_ELEMENT  = 1;
+const size_t MIN_COUNT_STRS            = 1;
+const size_t COUNT_LONG_IN_M256I       = 4;
+const int    MASK_IF_ELEM_EQUAL        = -1;
+const size_t ALIGNMENT                 = 32;
 
-const size_t COUNT_BUCKETS             = 727;
+const size_t COUNT_BUCKETS             = 1024;    //727
 const size_t COUNT_REPEATING           = 15;
-const size_t SIZE_CASH_WITH_WORDS      = 3;
+const size_t SIZE_CASH_WITH_WORDS      = 4;
 //const char*  POISON                   = "\0";
 
 enum errors_in_hash_table_t
@@ -93,7 +112,7 @@ struct inf_hash_table_t
 
 struct inf_for_search_t
 {
-	char*  symbols_from_file;
+	//char*  symbols_from_file;
 	char** words_for_search;
 	size_t count_words;
 };
@@ -125,6 +144,5 @@ struct cash_t
 	size_t index_free;
 	element_in_cash_t elements_in_cash[SIZE_CASH_WITH_WORDS];
 };
-
 
 #endif

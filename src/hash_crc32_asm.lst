@@ -1,0 +1,54 @@
+     1                                  ;---------------------------------------------------------------------------------------
+     2                                  ;program on Linux-nasm-64
+     3                                  ;has code with hash_crc32_asm                  
+     4                                  ;---------------------------------------------------------------------------------------
+     5                                  section .text   ;has text with program
+     6                                  global hash_crc32_asm  ;global func: other files can see this func (for ld) 
+     7                                  
+     8                                  ;---------------------------------------------------------------------------------------------------------
+     9                                  ;                                       hash_crc32_asm 
+    10                                  ;calculate hash crc32 for 'char[32] str' and return it
+    11                                  ;
+    12                                  ;entry: rdi = ptr on str with len 32 bytes
+    13                                  ;
+    14                                  ;exit:  rax = remainder (hash) crc32
+    15                                  ;
+    16                                  ;destr: rax = result
+    17                                  ;		rcx = count iterations for count crc32
+    18                                  ;		rsi = index element in str 
+    19                                  ;			= COUNT_BUCKETS
+    20                                  ;           = mask_for: rax % 1024
+    21                                  ;		rdx = hash from every element 
+    22                                  ;	
+    23                                  ;must save:    rbp, rbx, r12-15
+    24                                  ;mustn't save: others registers
+    25                                  ;---------------------------------------------------------------------------------------------------------
+    26                                  hash_crc32_asm:
+    27                                  
+    28 00000000 31C0                    	xor eax, eax    ;rax = 0 - result
+    29 00000002 B904000000              	mov rcx, 4d     ;rcx = 4 - count iterations for count crc32            
+    30 00000007 31F6                    	xor esi, esi    ;rsi = 0 - index on element in str
+    31                                  
+    32                                  	count_crc32_for_new_elem:
+    33                                  
+    34 00000009 F2480F38F11437          		crc32 rdx, qword [rdi + rsi]   ;rdx = hash for element 
+    35                                  
+    36 00000010 4883C608                		add rsi, 8d  ;rsi += 8 (skip old elem with len 32 bytes)
+    37 00000014 4801D0                  		add rax, rdx ;rax += rdx (save hash crc32 for element) 
+    38                                  
+    39 00000017 E2F0                    	loop count_crc32_for_new_elem     ;while (rcx != 0) {count_crc32_for_new_elem ();}  //while have elements in str, continue count crc32
+    40                                  
+    41 00000019 BEFF010000              	mov rsi, 0111111111b   ;rsi = 1024 - 1 = mask 
+    42 0000001E 4821F0                  	and rax, rsi           ;rax = rax_old % 1024
+    43                                  
+    44                                  	;mov rsi, 727d ;const size_t COUNT_BUCKETS = 727;
+    45                                  	;;cqo           ;rax -> rdx:rax
+    46                                  	;xor edx, edx
+    47                                  	;div rsi       
+    48                                  				  ;rax = rax_old / 727
+    49                                  				  ;rdx = rax_old % 727
+    50                                  
+    51                                  	;mov rax, rdx
+    52                                  
+    53 00000021 C3                      	ret  ;rax = remainder (hash) from crc32
+    54                                  ;----------------------------------------------------------------------------------------------------------
