@@ -38,7 +38,7 @@ hash_crc32_asm:
 
 	loop count_crc32_for_new_elem     ;while (rcx != 0) {count_crc32_for_new_elem ();}  //while have elements in str, continue count crc32
 
-	mov rsi, 0111111111b   ;rsi = 1024 - 1 = mask 
+	mov rsi, 01111111111b   ;rsi = 1024 - 1 = mask 
 	and rax, rsi           ;rax = rax_old % 1024
 
 	;mov rsi, 727d ;const size_t COUNT_BUCKETS = 727;

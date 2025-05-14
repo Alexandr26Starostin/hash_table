@@ -38,7 +38,7 @@
     38                                  
     39 00000017 E2F0                    	loop count_crc32_for_new_elem     ;while (rcx != 0) {count_crc32_for_new_elem ();}  //while have elements in str, continue count crc32
     40                                  
-    41 00000019 BEFF010000              	mov rsi, 0111111111b   ;rsi = 1024 - 1 = mask 
+    41 00000019 BEFF030000              	mov rsi, 01111111111b   ;rsi = 1024 - 1 = mask 
     42 0000001E 4821F0                  	and rax, rsi           ;rax = rax_old % 1024
     43                                  
     44                                  	;mov rsi, 727d ;const size_t COUNT_BUCKETS = 727;

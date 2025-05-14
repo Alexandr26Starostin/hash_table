@@ -7,28 +7,24 @@
 	#define PRINT_INF_ABOUT_HASH_FUNC
 	#define PRINT_WORDS_FOR_SEARCH
 	#define PRINT_CPE_RESULT
-	#define TEST_PROGRAM
+	#define DEBUG_CRC32_
 #endif
 
-#define INTRINSICS
-
-#define INLINE_ASM
-
-// #define PRINT_INF_ABOUT_HASH_FUNC
-
 //#define TEST_PROGRAM
-
-//#define DEBUG_CRC32_
+//#define INTRINSICS_
+//#define INLINE_ASM_
 
 //typedef long data_t; 
 typedef char* data_t;
 
-const __u_int POLYNOMIAL   		         = 0x04C11DB7;
+const __u_int POLYNOMIAL   		         = 0x04C11DB7;    //0x741B8CD7;  //0x1EDC6F41;     //0x04C11DB7;
 const __u_int MASK_HIGH_BIT_IN_REGISTER  = 0x80000000;
 const __u_int MASK_FIRST_BIT             = 0x00000001;
 const char    MASK_HIGH_BIT_BYTE         = (char) 0x80;
 const size_t  COUNT_SHIFTING_BITS        = 1;
 const size_t  BITS_IN_BYTE               = 8;
+const size_t BASE_NUMBER_DJB2            = 5381;
+const size_t SHIFTING_IN_GFB2            = 5;
 
 const size_t SIZE_OF_DELETE_LIST       = 0;
 const size_t MIN_SIZE_OF_LIST          = 1;
@@ -92,9 +88,6 @@ struct node_t
 	node_t* next_element;
 	size_t  counter_element;
 	data_t  data;
-	// long    nop_long_1;
-	// long    nop_long_2;
-	// long    nop_long_3;     //sizeof (data + 3 * nop_long) == 32;
 };
 
 struct list_t 
@@ -117,7 +110,7 @@ struct inf_for_search_t
 	size_t count_words;
 };
 
-#ifdef TEST_PROGRAM
+//--------------------------------------
 
 struct inf_test_t 
 {
@@ -130,7 +123,8 @@ struct inf_cpe_t
 	size_t      max_iterations;
 	inf_test_t* tests;
 };
-#endif
+
+//---------------------------
 
 struct element_in_cash_t
 {

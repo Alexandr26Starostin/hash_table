@@ -8,6 +8,7 @@
 #include "list.h"
 #include "func_hash.h"
 #include "text_and_files.h"
+#include "cpe.h"
 #include "hash_table.h"
 
 #define CLOSE_FILE_(file, name_file)                  					\
@@ -45,10 +46,6 @@
 static errors_in_hash_table_t ctor_lists_in_hash_table (list_t* hash_table);
 static errors_in_hash_table_t fill_hash_table          (int argc, char** argv, inf_hash_table_t* ptr_inf_hash_table, FILE* file_words);
 
-#ifdef PRINT_WORDS_FOR_SEARCH
-static errors_in_hash_table_t print_words_for_search   (char** words_for_search, size_t count_words);
-#endif
-
 #ifdef TEST_PROGRAM
 	static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search);
 #else
@@ -57,15 +54,6 @@ static errors_in_hash_table_t print_words_for_search   (char** words_for_search,
 
 #ifdef PRINT_INF_ABOUT_HASH_FUNC
 	static errors_in_hash_table_t get_inf_func_hash (int argc, char** argv, list_t* hash_table);
-#endif
-
-#ifdef PRINT_CPE_RESULT
-	static errors_in_hash_table_t print_cpe_result   (inf_cpe_t cpe_result);
-#endif
-
-#ifdef TEST_PROGRAM
-	static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result);
-	static errors_in_hash_table_t fill_file_plot     (FILE* file_plot, inf_cpe_t cpe_result);
 #endif
 
 static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* word, element_in_cash_t* ptr_word_from_cash);
@@ -249,24 +237,6 @@ errors_in_hash_table_t use_hash_table (int argc, char** argv, inf_hash_table_t* 
 	return NOT_ERROR;
 }
 
-#ifdef PRINT_WORDS_FOR_SEARCH
-static errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t count_words)
-{
-	assert (words_for_search);
-
-	printf ("------------------------------------------------------------------------\nwords_for search:\n\n");
-
-	for (size_t index_word = 0; index_word < count_words; index_word++)
-	{
-		printf ("%s\n", words_for_search[index_word]);
-	}
-
-	printf ("------------------------------------------------------------------------\n\n");
-
-	return NOT_ERROR;
-}
-#endif
-
 #ifdef TEST_PROGRAM
 static errors_in_hash_table_t find_words_in_hash_table (int argc, char** argv, inf_hash_table_t inf_hash_table, inf_for_search_t inf_for_search)
 #else
@@ -327,7 +297,6 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 				word = words_for_search[index_word];
 
 				//printf ("%s\n", word);
-
 				//getchar ();
 
 				search_in_cash_t status_cash = search_element_in_cash (cash_with_words, word, &word_from_cash);
@@ -399,220 +368,11 @@ static errors_in_hash_table_t find_words_in_hash_table (inf_hash_table_t inf_has
 }
 
 //---------------------------------------------------------------------------------------------------------------------------
-#ifdef PRINT_CPE_RESULT
-
-static errors_in_hash_table_t print_cpe_result (inf_cpe_t cpe_result)
-{
-	inf_test_t* tests = cpe_result.tests;
-	assert (tests);
-
-	size_t max_iterations = cpe_result.max_iterations;
-	size_t max_index      = max_iterations * COUNT_REPEATING;
-
-	printf ("-----------------------------------\ninf about cpe_result:\n"
-			"max_iterations == %ld\nCOUNT_REPEATING == %ld\n\n"
-			"iterations       ticks\n", max_iterations, COUNT_REPEATING);
-
-	for (size_t index = 0; index < max_index; index++)
-	{
-		printf ("%10ld       %ld\n", (tests[index]).iterations, (tests[index]).ticks);
-	}
-
-	printf ("-----------------------------------\n\n");
-
-	return NOT_ERROR;
-}
-#endif
-
-#ifdef TEST_PROGRAM
-static errors_in_hash_table_t analyze_cpe_result (int argc, char** argv, inf_cpe_t cpe_result)
-{
-	assert (argv);
-
-	FIND_FLAG_("-plot", "Not find flag: -plot <file_for_with_code_for_print_plot.py>", NOT_FIND_FLAG_PLOT)
-
-	FILE* file_plot = fopen (argv[index_argc], "w");
-	if (file_plot == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Cannot open file_search\n"
-				"Error in fopen(); or you don't <file_for_with_code_for_print_plot.py>:"
-				"-plot <file_for_with_code_for_print_plot.py>\n\n", __FILE__, __LINE__);
-
-		return CANNOT_OPEN_FILE;
-	}
-
-	errors_in_hash_table_t status = fill_file_plot (file_plot, cpe_result);
-	if (status) 
-	{
-		CLOSE_FILE_(file_plot, "file_plot")
-
-		return status;
-	}
-
-	CLOSE_FILE_(file_plot, "file_plot")
-
-	return NOT_ERROR;
-}
-
-static errors_in_hash_table_t fill_file_plot (FILE* file_plot, inf_cpe_t cpe_result)
-{
-	assert (file_plot);
-
-	inf_test_t* tests = cpe_result.tests;
-	assert (tests);
-
-	size_t max_iterations = cpe_result.max_iterations;
-	size_t max_index      = max_iterations * COUNT_REPEATING;
-
-	fprintf (file_plot, 
-
-	"import numpy as np\n"
-	"import matplotlib.pyplot as plt\n"
-	"from scipy import stats\n\n"
-
-	"def detect_outliers(x, y, threshold=2.5):\n"
-		"\t\"\"\"\n"
-		"\tОбнаруживает выбросы с помощью метода межквартильного размаха (IQR)\n"
-		"\tВозвращает маску с True для выбросов\n"
-		"\t\"\"\"\n"
-		"\t# Сначала выполняем линейную регрессию\n"
-		"\tslope, intercept, _, _, _ = stats.linregress(x, y)\n"
-		"\tresiduals = y - (slope * x + intercept)\n\n"
-		
-		"\t# Вычисляем квартили и межквартильный размах\n"
-		"\tQ1 = np.percentile(residuals, 25)\n"
-		"\tQ3 = np.percentile(residuals, 75)\n"
-		"\tIQR = Q3 - Q1\n\n"
-		
-		"\t# Определяем границы для выбросов\n"
-		"\tlower_bound = Q1 - threshold * IQR\n"
-		"\tupper_bound = Q3 + threshold * IQR\n\n"
-		
-		"\t# Возвращаем маску выбросов\n"
-		"\treturn (residuals < lower_bound) | (residuals > upper_bound)\n\n"
-
-	"def linear_regression_with_errors(x, y):\n"
-		"\t\"\"\"\n"
-		"\tВыполняет линейную регрессию и вычисляет погрешности параметров\n"
-		"\tВозвращает:\n"
-			"\t\tslope, intercept - параметры прямой\n"
-			"\t\tslope_err, intercept_err - погрешности параметров\n"
-			"\t\tr_squared - коэффициент детерминации\n"
-		"\t\"\"\"\n"
-		"\tn = len(x)\n\n"
-		
-		"\t# Вычисляем основные суммы\n"
-		"\tsum_x = np.sum(x)\n"
-		"\tsum_y = np.sum(y)\n"
-		"\tsum_xy = np.sum(x * y)\n"
-		"\tsum_x2 = np.sum(x ** 2)\n"
-		"\tsum_y2 = np.sum(y ** 2)\n\n"
-		
-		"\t# Коэффициенты МНК\n"
-		"\tslope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)\n"
-		"\tintercept = (sum_y - slope * sum_x) / n\n\n"
-		
-		"\t# Предсказанные значения и остатки\n"
-		"\ty_pred = slope * x + intercept\n"
-		"\tresiduals = y - y_pred\n\n"
-		
-		"\t# Стандартное отклонение остатков\n"
-		"\tsigma = np.sqrt(np.sum(residuals ** 2) / (n - 2))\n\n"
-		
-		"\t# Погрешности параметров\n"
-		"\tx_mean = np.mean(x)\n"
-		"\tS_xx = np.sum((x - x_mean) ** 2)\n\n"
-		
-		"\tslope_err = sigma / np.sqrt(S_xx)\n"
-		"\tintercept_err = sigma * np.sqrt(1 / n + x_mean ** 2 / S_xx)\n\n"
-		
-		"\t# Коэффициент детерминации R²\n"
-		"\tss_total = np.sum((y - np.mean(y)) ** 2)\n"
-		"\tss_residual = np.sum(residuals ** 2)\n"
-		"\tr_squared = 1 - (ss_residual / ss_total)\n\n"
-		
-		"\treturn slope, intercept, slope_err, intercept_err, r_squared\n\n"
-
-	"def plot_regression_with_outliers(x, y, threshold=2.5):\n"
-		"\t\"\"\"\n"
-		"\tСтроит график с выделением выбросов и линией регрессии\n"
-		"\t\"\"\"\n"
-		"\t# Обнаруживаем выбросы\n"
-		"\toutlier_mask = detect_outliers(x, y, threshold)\n\n"
-		
-		"\t# Выполняем регрессию без выбросов\n"
-		"\tclean_x = x[~outlier_mask]\n"
-		"\tclean_y = y[~outlier_mask]\n\n"
-		
-		"\tslope, intercept, slope_err, intercept_err, r_squared = linear_regression_with_errors(clean_x, clean_y)\n\n"
-		
-		"\t# Создаем график\n"
-		"\tplt.figure(figsize=(10, 6))\n\n"
-		
-		"\t# Рисуем нормальные точки (синие)\n"
-		"\tplt.scatter(clean_x, clean_y, color='blue', label='Нормальные точки')\n\n"
-		
-		"\t# Рисуем выбросы (красные)\n"
-		"\tif np.any(outlier_mask):\n"
-			"\t\tplt.scatter(x[outlier_mask], y[outlier_mask], color='red', label='Выбросы')\n\n"
-		
-		"\t# Рисуем линию регрессии\n"
-		"\tx_fit = np.linspace(min(x), max(x), 100)\n"
-		"\ty_fit = slope * x_fit + intercept\n"
-		"\tplt.plot(x_fit, y_fit, color='green', label=f'МНК: y = ({slope:.3f}±{slope_err:.3f})x + ({intercept:.3f}±{intercept_err:.3f})')    #\\nR² = {r_squared:.3f}\n\n" 
-		
-		"\t# Настраиваем график\n"
-		"\tplt.xlabel('итераций в цикле', fontsize=12)\n"
-		"\tplt.ylabel('такты синхронизации на весь цикл', fontsize=12)\n"
-		"\tplt.title('Линейная регрессия с выделением выбросов для измерения CPE', fontsize=14)\n"
-		"\tplt.legend(fontsize=10)\n"
-		"\tplt.grid(True, linestyle='--', alpha=0.6)\n\n"
-		
-		"\t# Выводим статистику\n"
-		"\tprint(\"=== Результаты регрессии ===\")\n"
-		"\tprint(f\"Угловой коэффициент: {slope:.5f} ± {slope_err:.5f}\")\n"
-		"\tprint(f\"Смещение: {intercept:.5f} ± {intercept_err:.5f}\")\n"
-		"\t#print(f\"Коэффициент детерминации R²: {r_squared:.5f}\")\n"
-		"\tprint(f\"Обнаружено выбросов: {np.sum(outlier_mask)} из {len(x)} точек\")\n\n"
-		
-		"\tplt.tight_layout()\n"
-		"\tplt.savefig('plot_cpe.png')\n\n"
-
-	"# Пример использования\n"
-	"if __name__ == \"__main__\":\n\n"
-		
-		"\tx = np.array([");
-
-
-	for (size_t index = 0; index < max_index; index++)
-	{
-		fprintf (file_plot, "%7ld, ", (tests[index]).iterations);
-	}
-
-	fprintf (file_plot, "])\n"
-						"\ty = np.array([");
-
-	for (size_t index = 0; index < max_index; index++)
-	{
-		fprintf (file_plot, "%7ld, ", (tests[index]).ticks);
-	}
-
-	fprintf (file_plot, "])\n\n"
-						"\tplot_regression_with_outliers(x, y, threshold=2.5)\n");
-
-	return NOT_ERROR;
-}
-
-#endif
-//---------------------------------------------------------------------------------------------------------------------------
 
 static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* word, element_in_cash_t* ptr_word_from_cash)
 {
 	assert (word);
 	assert (ptr_word_from_cash);
-
-	search_in_cash_t status = NOT_FIND_IN_CASH;
 
 	#ifndef INLINE_ASM
 
@@ -633,98 +393,92 @@ static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* wo
 		}
 	}
 
-	return status;
+	return NOT_FIND_IN_CASH;
 
 	//---------------------------------------------------------------------------------------------
 
 	#else
 
+	search_in_cash_t status = NOT_FIND_IN_CASH;
+
 	bool (*ptr_compare_element) (char*, char*) = compare_element;
 
 	asm volatile (
-		".intel_syntax noprefix\n\t"  //rdi = cash_with_words 			 rsi = word  		rdx = ptr_word_from_cash		
-		//"mov rdi, %[cash]\n\t"
-		//"push r8\n\t"
+		".intel_syntax noprefix\n\t"  	 		
+		
+		"mov rsi, %[word]\n\t"   //rsi = word 
+		"mov r14, %[ptr]\n\t"    //r14 = ptr_word_from_cash
 
-		"mov rsi, %[word]\n\t"
-		"mov rdx, %[ptr]\n\t"
-
-
-		"mov rbx, %[cash]\n\t"           
+		"mov rbx, %[cash]\n\t"          //rbx = cash_with_words 
 		"add rbx, 8\n\t"                //rbx = elements_in_cash = cash_with_words.elements_in_cash
 		"xor ecx, ecx\n\t"              //rcx = index_el = 0
 		"mov r12, 4\n\t"                //r12 = SIZE_CASH_WITH_WORDS = 4
 
-		// "sub rsp, 24d\n\t"
-		// "mov r9, rsp\n\t"              //r9 = element 
-
 		"check_next_cash:\n\t"
 
-		"push rdx\n\t"
+		
 		"mov rax, rcx\n\t"
 		"mov r15, 24\n\t"
-		"mul r15\n\t"
-		"mov r13, [rbx + rax]\n\t"    //r13 = elements_in_cash[index_el];
-										  //r13 = word_el = element.word;
-		"pop rdx\n\t"
+		"mul r15\n\t"        //rdx changed
+		"mov r13, [rbx + rax]\n\t"    //r13 = [rbx + rcx * 24]
+									  //r13 = elements_in_cash[index_el];
+									  //r13 = word_el = element.word;
+		
 
-		"test r13, r13\n\t"
-		"jz word_is_null\n\t"
+		"test r13, r13\n\t"        
+		"jz word_is_null\n\t"      //if (word_el == NULL) {break;}
 		//--------------------------------------------------------------------------------------------------------
       
-		//"push rdi\n\t"
 		"push rsi\n\t"
-		"push rcx\n\t"
-		"push rdx\n\t"
+		"push rcx\n\t"     //save registers
 
-		"mov rdi, r13\n\t"
-		//rsi not changed
+		"mov rdi, r13\n\t"   //prepare arg
+		//rsi not changed and rsi = word
 
-		"call %[ptr_func]\n\t"
+		"call %[ptr_func]\n\t"   //al = compare_element (word, word_el);
 
-		"pop rdx\n\t"
-		"pop rcx\n\t"
-		"pop rsi\n\t"
-		//"pop rdi\n\t"
+		"pop rcx\n\t" 
+		"pop rsi\n\t"    //save registers
+		
+		//--------------------------------------------------------------------------------------------------------
 
 		"test al, al\n\t"
-		"jz not_elem_from_cash\n\t"
+		"jz not_elem_from_cash\n\t"  //if (al == false) {continue;}
 
 		//----------------------------------------------------------------------------------------------------------
   
-		"push rdx\n\t"
 		"mov rax, rcx\n\t"
 		"mov r15, 24\n\t"
-		"mul r15\n\t"
+		"mul r15\n\t"     //rdx changed
 		"add r13, rax\n\t"  //r13 = rbx + rcx * 24
-		"pop rdx\n\t"
 
-		"mov r14, [r13]\n\t"
-		"mov [rdx], r14\n\t"
+		//-------------------------------------------------------------------------------------------------
+		//*ptr_word_from_cash = element;
 
-		"mov r14, [r13 + 8]\n\t"
-		"mov [rdx + 8], r14\n\t"
+		"mov r15, [r13]\n\t"
+		"mov [r14], r15\n\t"       //ptr_word_from_cash -> word = element.word
 
-		"mov r14, [r13 + 16]\n\t"
-		"mov [rdx + 16], r14\n\t"      //*ptr_word_from_cash = element;
+		"mov r15, [r13 + 8]\n\t"
+		"mov [r14 + 8], r15\n\t"   //ptr_word_from_cash -> index_bucket = element.index_bucket
 
-		"mov %0, 1\n\t"
-		"jmp end_asm\n\t"
+		"mov r15, [r13 + 16]\n\t"
+		"mov [r14 + 16], r15\n\t"  //ptr_word_from_cash -> count_words_in_text = element.count_words_in_text
+
+		"mov %0, 1\n\t"      //status = FIND_IN_CASH;
+		"jmp end_asm\n\t"    //break;
 
 		//-----------------------------------------------------------------------------------------------------------
 
 		"not_elem_from_cash:\n\t"
 
-		"inc rcx\n\t"
+		"inc rcx\n\t"         
 		"cmp rcx, r12\n\t"
-		"jnz check_next_cash\n\t"
+		"jnz check_next_cash\n\t"  //for (rcx = 0; rcx < r12; rcx++) {...}   //r12 = 4
 
 		"word_is_null:\n\t"
 
-		"mov %0, 0\n\t"
+		"mov %0, 0\n\t"  //status = NOT_FIND_IN_CASH;
 		"end_asm:\n\t"
-
-		//"pop r8\n\t"
 
 		//-----------------------------------------------------------------------------------------------------
 		:"=r" (status)
@@ -739,4 +493,3 @@ static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* wo
 
 	#endif
 }
-

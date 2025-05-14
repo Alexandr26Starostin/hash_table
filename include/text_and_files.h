@@ -7,5 +7,6 @@ errors_in_hash_table_t get_words_for_search     (int argc, char** argv, inf_for_
 errors_in_hash_table_t delete_words_for_search  (inf_for_search_t inf_for_search);
 errors_in_hash_table_t print_str_32_bytes       (char* str);
 errors_in_hash_table_t initialize_aligned_alloc (char* array);
+errors_in_hash_table_t print_words_for_search   (char** words_for_search, size_t count_words);
 
 #endif

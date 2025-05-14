@@ -30,14 +30,21 @@ errors_in_hash_table_t ctor_list (list_t* ptr_list)
 	first_element -> next_element    = NULL;
 	first_element -> counter_element = MIN_COUNTER_ELEMENT;
 
+	#ifdef INTRINSICS
 	first_element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
+	#else
+	first_element -> data = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
+	#endif
+
 	if (first_element -> data == NULL)
 	{
 		printf ("Error in %s:%d\nHave not memory for first_element -> data in try to create list\n\n", __FILE__, __LINE__);
 		return NOT_MEMORY_FOR_ELEMENT;
 	}
 
+	#ifdef INTRINSICS
 	initialize_aligned_alloc (first_element -> data);
+	#endif
 	
 	// if (strncpy(first_element -> data, "\0", MAX_LEN_WORD) == NULL)
 	// {
@@ -111,14 +118,21 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 	element -> next_element    = NULL;
 	element -> counter_element = MIN_COUNTER_ELEMENT;
 
+	#ifdef INTRINSICS
 	element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
+	#else
+	element -> data = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
+	#endif
+
 	if (element -> data == NULL)
 	{
 		printf ("Error in %s:%d\nHave not memory for element -> data in try to add element (%s) in listt\n\n", __FILE__, __LINE__, data);
 		return NOT_MEMORY_FOR_ELEMENT;
 	}
 
+	#ifdef INTRINSICS
 	initialize_aligned_alloc (element -> data);
+	#endif
 
 	if (strncpy(element -> data, data, MAX_LEN_WORD) == NULL)
 	{
@@ -259,16 +273,18 @@ bool compare_element (data_t element_1, data_t element_2)
 
 	#else
 
-	//long* ptr_1_elem = (long*) element_1;
-	//long* ptr_2_elem = (long*) element_2;
+	// long* ptr_1_elem = (long*) element_1;
+	// long* ptr_2_elem = (long*) element_2;
 	
-	//__m256i first_element  = _mm256_set_epi64x (ptr_1_elem[0], ptr_1_elem[1], ptr_1_elem[2], ptr_1_elem[3]);
-	//__m256i second_element = _mm256_set_epi64x (ptr_2_elem[0], ptr_2_elem[1], ptr_2_elem[2], ptr_2_elem[3]);
+	// __m256i first_element  = _mm256_set_epi64x (ptr_1_elem[0], ptr_1_elem[1], ptr_1_elem[2], ptr_1_elem[3]);
+	// __m256i second_element = _mm256_set_epi64x (ptr_2_elem[0], ptr_2_elem[1], ptr_2_elem[2], ptr_2_elem[3]);
 
 	// print_m256i (first_element);
 	// print_m256i (second_element);
 
 	__m256i result_cmp = _mm256_cmpeq_epi64 (*(__m256i*) element_1, *(__m256i*) element_2);
+
+	//__m256i result_cmp = _mm256_cmpeq_epi64 (first_element, second_element);
 
 	//print_m256i (result_cmp);
 

@@ -15,6 +15,7 @@
 		"ostream": "cpp",
 		"format": "cpp",
 		"initializer_list": "cpp",
-		"charconv": "cpp"
+		"charconv": "cpp",
+		"cstdlib": "cpp"
 	}
 }

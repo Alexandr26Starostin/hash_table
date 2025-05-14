@@ -1,9 +1,6 @@
 #ifndef FUNC_HASH_H
 #define FUNC_HASH_H
 
-const size_t BASE_NUMBER_DJB2 = 5381;
-const size_t SHIFTING_IN_GFB2 = 5;
-
 size_t hash_sum_ascii          (char* str);
 size_t hash_sum_of_squares     (char* str);
 size_t hash_djb2      		   (char* str);

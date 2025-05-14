@@ -159,11 +159,27 @@ static errors_in_hash_table_t fill_words_for_search (inf_for_search_t* ptr_inf_f
 
 	while (! feof (file_search))      //while (not end of file)
 	{
-		words_for_search[count_word] = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
-		
-		initialize_aligned_alloc (words_for_search[count_word]);
+		#ifdef INTRINSICS
+		char* words = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
+		#else
+		char* words = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
+		#endif
 
-		get_word_from_file (file_search, words_for_search[count_word]);   //return NOT_ERROR;
+		if (words == NULL)
+		{
+			printf ("Error in %s:%d\n"
+					"Have not memory for words from calloc or aligned_alloc\n\n", __FILE__, __LINE__);
+
+			return NOT_MEMORY_FROM_CALLOC;
+		}
+
+		#ifdef INTRINSICS
+		initialize_aligned_alloc (words);
+		#endif
+
+		get_word_from_file (file_search, words);   //return NOT_ERROR;
+
+		words_for_search[count_word] = words;
 
 		// printf ("%s\n", words_for_search[count_word]);
 		// getchar ();
@@ -269,6 +285,22 @@ errors_in_hash_table_t print_str_32_bytes (char* str)
 		printf ("%2X", str[index]);
 	}
 	printf ("\n\n");
+
+	return NOT_ERROR;
+}
+
+errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t count_words)
+{
+	assert (words_for_search);
+
+	printf ("------------------------------------------------------------------------\nwords_for search:\n\n");
+
+	for (size_t index_word = 0; index_word < count_words; index_word++)
+	{
+		printf ("%s\n", words_for_search[index_word]);
+	}
+
+	printf ("------------------------------------------------------------------------\n\n");
 
 	return NOT_ERROR;
 }
