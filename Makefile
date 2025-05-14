@@ -3,13 +3,14 @@ CC=g++
 #MODE=DEBUG
 #MODE=RELEASE
 
-#-DPRINT_INF_ABOUT_HASH_FUNC
+#-DPRINT_INF_ABOUT_HASH_FUNC  
+#-DINLINE_ASM
 
 FILES=main.o hash_crc32_asm.o list.o hash_table.o func_hash.o text_and_files.o cpe.o
 TARGET=hash_table
 INTRINSICS=-mavx2 -msse -msse2
 INLINE_ASM=-masm=intel
-DEFINES=
+DEFINES=-DINTRINSICS -DINLINE_ASM
 
 ifeq ($(MODE),DEBUG)
 	FLAGS=-Iinclude -O0 -Wshadow -Winit-self -Wredundant-decls -Wcast-align -Wundef -Wfloat-equal -Winline -Wunreachable-code -Wmissing-declarations -Wmissing-include-dirs -Wswitch-enum -Wswitch-default -Weffc++ -Wmain -Wextra -Wall -g -pipe -fexceptions -Wcast-qual -Wconversion -Wctor-dtor-privacy -Wempty-body -Wformat-security -Wformat=2 -Wignored-qualifiers -Wlogical-op -Wmissing-field-initializers -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wsign-promo -Wstack-usage=40000 -Wstrict-aliasing -Wstrict-null-sentinel -Wtype-limits -Wwrite-strings -D_DEBUG -D_EJUDGE_CLIENT_SIDE -D_EJC

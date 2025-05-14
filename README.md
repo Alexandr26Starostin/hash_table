@@ -84,6 +84,10 @@ make MODE=RELEASE
 make MODE=DEBUG
 ```
 
+Дополнительные флаги при сборке:
+
+Коды возврата ошибок:
+
 то будут включены *assert*, все флаги проверки кода, будет включен *sanitizer*, уровень оптимизаций будет выставлен на *-O0*. Этот режим можно использовать при поиске ошибок и внесении изменений в код программы.
 
 ## Подробнее о хэш-таблицах
@@ -947,3 +951,538 @@ $$SE = 0.57$$
 $$\text{rdtscerror} = 38.0 \pm 0.6$$
 
 Значит приборная погрешность *__rdtsc* составляет 38 тактов сихронизации процессора.
+
+## Измерение изначальной версии с *-O0*
+
+В этом и во всех последующих измерения:
+
+$$\sigma_{CPE} = \sqrt{(\sigma_{\text{приб}})^2 + (\sigma_{\text{случ}})^2}$$
+
+Чтобы выполнить измерение производительности поиска слов в начальной версии выполним следующие команды:
+
+```
+make MODE=TEST
+taskset -c 0 ./hash_table ./file_with_words.txt -hash hash_crc32  -find ./words_for_search.txt -plot plot.py
+python plot.py
+```
+
+Получаем график:
+
+<div style="text-align:center">
+    <img src="./pictures/base_-O0.png#center" alt="Измерение изначальной версии с *-O0*">
+</div>
+<br>
+<br>
+
+Получем, что для изначальной версии с *-O0*: СPE = $199.8 \pm 38.0$
+
+<!---
+
+<br>
+<p style="text-align:center;">
+	<font size="3">
+		Тогда СPE = $199.8 \pm 38.0$
+	</font>
+</p>
+
+-->
+
+## Измерение изначальной версии с *-O3*
+
+Изменим в [*Makefile*](https://github.com/Alexandr26Starostin/hash_table/blob/master/Makefile) небольшой фрагмент (*-O0* на *-O3* и разрешим inline функций):
+```
+else ifeq ($(MODE),TEST)
+	FLAGS=-Iinclude -DNDEBUG -O3
+	SANITIZERS=
+	TEST=-DTEST_PROGRAM
+else
+```
+
+Выполним те же действия и получим график:
+
+<div style="text-align:center">
+    <img src="./pictures/base_-O3.png#center" alt="Измерение изначальной версии с *-O3*">
+</div>
+<br>
+<br>
+
+Значит, что для изначальной версии с *-O3*: СPE = $67.1 \pm 38.0$
+
+Не забываем вернуть старое содержимое [*Makefile*](https://github.com/Alexandr26Starostin/hash_table/blob/master/Makefile), убрав все сделанные нами изменения.
+
+## Виды оптимизаций программы
+
+Оптимизации программы бывают алгоритмическими (связаны с логикой действий или структурами, хранящие обрабатываемые данные), аппаратные (связанные с особеностью апаратуры, проявляются в необычных синтаксичсеских и логических действиях, причём сама логика программы не менятся) и ассемблерными (вствака ассемблера, inline asm, Intrinsics). В нашем проекте мы делаем упор на ассемблерные оптмизации. Поэтому мы постраемся улучшить производительность программы при помощи трёх оптимизаций: вствака ассемблера, inline asm и Intrinsics.
+
+## Первая оптимизация: выявление неэффективного места и переписывание *compare_element* на Intrinsics
+
+Для нахождения неэффективности будем ипользовать *perf*. Выполним команды:
+```
+make MODE=TEST
+perf stat record -o ./perf.data ./hash_table ./file_with_words.txt -hash hash_crc32 -find ./words_for_search.txt -plot plot.py
+perf record -o ./perf.data ./hash_table ./file_with_words.txt -hash hash_crc32 -find ./words_for_search.txt -plot plot.py
+perf report -i ./perf.data
+```
+
+Мы увидим следующее:
+
+<div style="text-align:center">
+    <img src="./pictures/perf_opt_1.png#center" alt="Первый вызов *perf*">
+</div>
+<br>
+<br>
+
+Значит, самой трудоёмкой функцией является *compare_element*, и нужно оптимизировать именно её.
+
+Большинство слов, которые мы используем, имеют длину не больше 31 символов. Если найдётся слово длиной больше 31, то программа обрежёт его. Все слова можно хранить в массивах длиной 32, где 31 символ будет под само слово и последний, 32-ой символ будет под '\0'.  Если слово будет занимать меньше 31 символа, то оставшиеся байты будут заполнены '\0'. Такое решение позволит нам использовать xmm-регистры и, следовательно, Intrinsics-функции. Тогда мы сможем написать более эффективный *compare_element*, тк он будет за одну команду обрабатывать больше символов чем при их последовательном переборе. 
+
+Единственной проблемой останется то, что все слова должны будут быть выровнены по 32 байтам. Это можно решить 2 способами: c помощью конвентора или функции *aligned_alloc*. 
+
+В первом случае, конвентор - программа, которая файл со словами в столбике для заполнения превратит в бинарный файл, в котором каждое слово будет дополнено до длины в 32 байта с помощью '\0'. Тогда можно будет работать со словами для заполнения как с массивом из 32 батных элементов. Чтобы адрес этого массива был выровнен по 32 байта, нужно в начале один раз вызвать *aligned_alloc* с первым параметром = 32. Аналочно, поступаем со словами для поиска (обрабатываем их в конвенторе).
+
+Во втором случае, память для каждого слова (и для заполнения, и для поиска) придётся выделять не при помощи *calloc*, а при помощи *aligned_alloc* с первым параметром = 32 и после инициализировать все байты в этих словах '\0' (это может сделать написанная нами функция *initialize_aligned_alloc*).
+
+В нашем проекте реализован втоой подход.
+
+После решения проблемы с выравниваем получаем новую вурсию *compare_element* через Intrinsics:
+
+<details>
+<summary>Новая версия *compare_element* через Intrinsics</summary>
+
+```C
+
+bool compare_element (data_t element_1, data_t element_2)
+{
+	//data_t == char*
+	//data_t == char[32]
+	
+	assert (element_1);
+	assert (element_2);
+
+	__m256i result_cmp = _mm256_cmpeq_epi64 (*(__m256i*) element_1, *(__m256i*) element_2);
+
+	if (_mm256_movemask_epi8 (result_cmp) == MASK_IF_ELEM_EQUAL)
+		return true;
+
+	return false;
+}
+
+
+``` 
+</details>
+
+
+
+
+
+<details>
+<summary>Объединённая версия *compare_element* (Условная компиляция)</summary>
+
+```C
+
+bool compare_element (data_t element_1, data_t element_2)
+{
+	//data_t == char*
+	//data_t == char[32]
+	
+	assert (element_1);
+	assert (element_2);
+
+	#ifndef INTRINSICS
+
+	size_t index = 0;
+
+	char symbol_1 = '\0';
+	char symbol_2 = '\0';
+
+	while ((symbol_1 = element_1[index]) != '\0' and (symbol_2 = element_2[index]) != '\0')
+	{
+		if (symbol_1 - symbol_2)
+		{
+			return false;   //element_1 != element_2
+		}
+
+		index++;
+	}
+
+	if (element_1[index] == '\0' and element_2[index] == '\0')
+		return true;     //element_1 == element_2
+
+	return false;
+
+	//------------------------------------------------------------------------------------------
+
+	#else
+
+	__m256i result_cmp = _mm256_cmpeq_epi64 (*(__m256i*) element_1, *(__m256i*) element_2);
+
+	if (_mm256_movemask_epi8 (result_cmp) == MASK_IF_ELEM_EQUAL)
+		return true;
+
+	return false;
+
+	#endif
+}
+
+``` 
+</details>
+
+Чтобы запустить программу с *compare_element* на Intrinsics, нужно: 
+
+- Подключить библиотеку:
+```C
+#include <immintrin.h>
+```
+
+- Прописать в [*Makefile*](https://github.com/Alexandr26Starostin/hash_table/blob/master/Makefile):
+```
+INTRINSICS=-mavx2 -msse -msse2
+DEFINES=-DINTRINSICS
+```
+
+- Выполнить команды:
+```
+make MODE=TEST
+taskset -c 0 ./hash_table ./file_with_words.txt -hash hash_crc32  -find ./words_for_search.txt -plot plot.py
+python plot.py
+```
+
+Получаем график:
+
+<div style="text-align:center">
+    <img src="./pictures/intrinsics.png#center" alt="Измерение версии с *compare_element* на Intrinsics">
+</div>
+<br>
+<br>
+
+Значит, что для версии с *compare_element* на Intrinsics: СPE = $187.1 \pm 38.0$.
+
+Как мы видим, наша оптимизация увеличила производительность исходной программы в 1.07 раз. 
+
+## Вторая оптимизация: переписывание *crc32* на NASM
+
+Продолжим делать оптимизации, не убирая первую.
+
+Повторим профилирование:
+```
+make MODE=TEST
+perf stat record -o ./perf.data ./hash_table ./file_with_words.txt -hash hash_crc32 -find ./words_for_search.txt -plot plot.py
+perf record -o ./perf.data ./hash_table ./file_with_words.txt -hash hash_crc32 -find ./words_for_search.txt -plot plot.py
+perf report -i ./perf.data
+```
+
+Получим картинку:
+
+<div style="text-align:center">
+    <img src="./pictures/perf_opt_2.png#center" alt="Второй вызов *perf*">
+</div>
+<br>
+<br>
+
+Как мы видим, *compare_element* всё равно является самой трудоёмкой. В прикладной задаче нам бы пришлось пытаться ещё раз оптиммизировать эту функцию. Но в учебных целях мы пропусим эту функцию и перепишем *calculate_remainder*, используя другой способ: написание функции на NASM. 
+
+Функция *calculate_remainder* является самой важной частью функции *crc32*. Поэтому и перепишем *сrc32* на NASM и автоматически перепишем *calculate_remainder*. Функцию *сrc32* на NASM можно найти в файле [hash_crc32_asm.asm](https://github.com/Alexandr26Starostin/hash_table/blob/master/src/hash_crc32_asm.asm). Эта оптимизация должна увеличить производительность программы, тк в x86-64 есть ассемблерная команда crc32 и есть вероятность, что она будет быстрее и эффективнее (в плане коллизии), чем наша хэш-функция *crc32*.
+
+<details>
+<summary>сrc32 на NASM</summary>
+
+``` asm
+
+;---------------------------------------------------------------------------------------
+;program on Linux-nasm-64
+;has code with hash_crc32_asm                  
+;---------------------------------------------------------------------------------------
+section .text   ;has text with program
+global hash_crc32_asm  ;global func: other files can see this func (for ld) 
+
+;---------------------------------------------------------------------------------------------------------
+;                                       hash_crc32_asm 
+;calculate hash crc32 for 'char[32] str' and return it
+;
+;entry: rdi = ptr on str with len 32 bytes
+;
+;exit:  rax = remainder (hash) crc32
+;
+;destr: rax = result
+;		rcx = count iterations for count crc32
+;		rsi = index element in str 
+;			= COUNT_BUCKETS
+;           = mask_for: rax % 1024
+;		rdx = hash from every element 
+;	
+;must save:    rbp, rbx, r12-15
+;mustn't save: others registers
+;---------------------------------------------------------------------------------------------------------
+hash_crc32_asm:
+
+	xor eax, eax    ;rax = 0 - result
+	mov rcx, 4d     ;rcx = 4 - count iterations for count crc32            
+	xor esi, esi    ;rsi = 0 - index on element in str
+
+	count_crc32_for_new_elem:
+
+		crc32 rdx, qword [rdi + rsi]   ;rdx = hash for element 
+
+		add rsi, 8d  ;rsi += 8 (skip old elem with len 32 bytes)
+		add rax, rdx ;rax += rdx (save hash crc32 for element) 
+
+	loop count_crc32_for_new_elem     ;while (rcx != 0) {count_crc32_for_new_elem ();}  //while have elements in str, continue count crc32
+
+	mov rsi, 01111111111b   ;rsi = 1024 - 1 = mask 
+	and rax, rsi           ;rax = rax_old % 1024
+
+	;mov rsi, 727d ;const size_t COUNT_BUCKETS = 727;
+	;;cqo           ;rax -> rdx:rax
+	;xor edx, edx
+	;div rsi       
+				  ;rax = rax_old / 727
+				  ;rdx = rax_old % 727
+
+	;mov rax, rdx
+
+	ret  ;rax = remainder (hash) from crc32
+;----------------------------------------------------------------------------------------------------------
+
+``` 
+</details>
+
+Чтобы программа увидела *hash_crc32_asm*, нужно добавить в [*Makefile*](https://github.com/Alexandr26Starostin/hash_table/blob/master/Makefile):
+```
+FILES=main.o hash_crc32_asm.o ...
+
+...
+
+hash_crc32_asm.o: src/hash_crc32_asm.asm
+	@nasm -f elf64 -l src/hash_crc32_asm.lst src/hash_crc32_asm.asm -o build/hash_crc32_asm.o
+
+...
+
+```
+
+Выполним команды:
+
+```
+make MODE=TEST
+taskset -c 0 ./hash_table ./file_with_words.txt -hash hash_crc32_asm  -find ./words_for_search.txt -plot plot.py
+python plot.py
+```
+
+Получаем график:
+
+<div style="text-align:center">
+    <img src="./pictures/crc32_asm.png#center" alt="Измерение версии с *crc32* на NASM">
+</div>
+<br>
+<br>
+
+Значит, что для версии с *crc32* на NASM: СPE = $79.3 \pm 38.0$
+
+Получаем, что на данный момент наши оптимизации увиличели производительность изначальной программы в 2.52 раза.
+
+Дополнительно проанализируем распределение *hash_crc32_asm*, как мы это делали для этого.
+
+График распределения *hash_crc32_asm*:
+
+<div style="text-align:center">
+    <img src="./pictures/hash crc32 asm.png#center" alt="Результат анализа hash_crc32_asm">
+</div>
+<br>
+<br>
+
+Качественно видно, что у функции *hash_crc32_asm* самое лучшее распределение из всех написанных нами хэш-функций. Это, безусловно, вляиет на производительность программы и является одной из причин резкого роста производительности.
+
+## Третья оптимизация: использование inline asm в C при переписывании *search_element_in_cash*
+
+Продолжим делать оптимизации, не убирая первую и вторую.
+
+Повторим профилирование:
+```
+make MODE=TEST
+perf stat record -o ./perf.data ./hash_table ./file_with_words.txt -hash hash_crc32_asm -find ./words_for_search.txt -plot plot.py
+perf record -o ./perf.data ./hash_table ./file_with_words.txt -hash hash_crc32_asm -find ./words_for_search.txt -plot plot.py
+perf report -i ./perf.data
+```
+
+Получим картинку:
+
+<div style="text-align:center">
+    <img src="./pictures/perf_opt_3.png#center" alt="Третий вызов *perf*">
+</div>
+<br>
+<br>
+
+Аналогично второй оптимизации, мы пропускаем функцию *compare_element* и будем оптимзировать *search_element_in_cash* при помощи inline asm в C.
+
+Если посмотрим в godbolt, как компилируется *search_element_in_cash*, то заметим, что в ней очень много обращений в память. Тк функция вызывается при каждом поиске элемента в хэш-таблице, то можно попробовать помощью регистров уменьшить количество обращений в память и, тем самым, улучшить производительность программы.
+
+<div style="text-align:center">
+    <img src="./pictures/godbolt.png#center" alt="*search_element_in_cash* в godbolt">
+</div>
+<br>
+<br>
+
+<details>
+<summary> search_element_in_cash написанная при помощи inline asm в C</summary>
+
+```C
+
+static search_in_cash_t search_element_in_cash (cash_t cash_with_words, char* word, element_in_cash_t* ptr_word_from_cash)
+{
+	assert (word);
+	assert (ptr_word_from_cash);
+
+	#ifndef INLINE_ASM
+
+	element_in_cash_t* elements_in_cash = cash_with_words.elements_in_cash;
+
+	for (size_t index_el = 0; index_el < SIZE_CASH_WITH_WORDS; index_el++)
+	{
+		element_in_cash_t element = elements_in_cash[index_el];
+
+		char* word_el = element.word;
+		if (word_el == NULL) {break;}
+
+		if (compare_element (word, word_el))
+		{
+			*ptr_word_from_cash = element;
+
+			return FIND_IN_CASH;
+		}
+	}
+
+	return NOT_FIND_IN_CASH;
+
+	//---------------------------------------------------------------------------------------------
+
+	#else
+
+	search_in_cash_t status = NOT_FIND_IN_CASH;
+
+	bool (*ptr_compare_element) (char*, char*) = compare_element;
+
+	asm volatile (
+		".intel_syntax noprefix\n\t"  	 		
+		
+		"mov rsi, %[word]\n\t"   //rsi = word 
+		"mov r14, %[ptr]\n\t"    //r14 = ptr_word_from_cash
+
+		"mov rbx, %[cash]\n\t"          //rbx = cash_with_words 
+		"add rbx, 8\n\t"                //rbx = elements_in_cash = cash_with_words.elements_in_cash
+		"xor ecx, ecx\n\t"              //rcx = index_el = 0
+		"mov r12, 4\n\t"                //r12 = SIZE_CASH_WITH_WORDS = 4
+
+		"check_next_cash:\n\t"
+
+		
+		"mov rax, rcx\n\t"
+		"mov r15, 24\n\t"
+		"mul r15\n\t"        //rdx changed
+		"mov r13, [rbx + rax]\n\t"    //r13 = [rbx + rcx * 24]
+									  //r13 = elements_in_cash[index_el];
+									  //r13 = word_el = element.word;
+		
+
+		"test r13, r13\n\t"        
+		"jz word_is_null\n\t"      //if (word_el == NULL) {break;}
+		//--------------------------------------------------------------------------------------------------------
+      
+		"push rsi\n\t"
+		"push rcx\n\t"     //save registers
+
+		"mov rdi, r13\n\t"   //prepare arg
+		//rsi not changed and rsi = word
+
+		"call %[ptr_func]\n\t"   //al = compare_element (word, word_el);
+
+		"pop rcx\n\t" 
+		"pop rsi\n\t"    //save registers
+		
+		//--------------------------------------------------------------------------------------------------------
+
+		"test al, al\n\t"
+		"jz not_elem_from_cash\n\t"  //if (al == false) {continue;}
+
+		//----------------------------------------------------------------------------------------------------------
+  
+		"mov rax, rcx\n\t"
+		"mov r15, 24\n\t"
+		"mul r15\n\t"     //rdx changed
+		"add r13, rax\n\t"  //r13 = rbx + rcx * 24
+
+		//-------------------------------------------------------------------------------------------------
+		//*ptr_word_from_cash = element;
+
+		"mov r15, [r13]\n\t"
+		"mov [r14], r15\n\t"       //ptr_word_from_cash -> word = element.word
+
+		"mov r15, [r13 + 8]\n\t"
+		"mov [r14 + 8], r15\n\t"   //ptr_word_from_cash -> index_bucket = element.index_bucket
+
+		"mov r15, [r13 + 16]\n\t"
+		"mov [r14 + 16], r15\n\t"  //ptr_word_from_cash -> count_words_in_text = element.count_words_in_text
+
+		"mov %0, 1\n\t"      //status = FIND_IN_CASH;
+		"jmp end_asm\n\t"    //break;
+
+		//-----------------------------------------------------------------------------------------------------------
+
+		"not_elem_from_cash:\n\t"
+
+		"inc rcx\n\t"         
+		"cmp rcx, r12\n\t"
+		"jnz check_next_cash\n\t"  //for (rcx = 0; rcx < r12; rcx++) {...}   //r12 = 4
+
+		"word_is_null:\n\t"
+
+		"mov %0, 0\n\t"  //status = NOT_FIND_IN_CASH;
+		"end_asm:\n\t"
+
+		//-----------------------------------------------------------------------------------------------------
+		:"=r" (status)
+		:[cash] "r" (&cash_with_words), 
+		 [word] "r" (word), 
+		 [ptr]  "r" (ptr_word_from_cash),
+		 [ptr_func] "r" (ptr_compare_element)
+		:"rbx", "rcx", "rdi", "rsi", "rdx", "r12", "r13", "r14", "r15", "rax", "memory", "cc"
+		);
+
+	return status;
+
+	#endif
+}
+
+
+``` 
+</details>
+
+Чтобы скомпилировать функцию с inline asm в C, нужно в [*Makefile*](https://github.com/Alexandr26Starostin/hash_table/blob/master/Makefile) прописать:
+```
+DEFINES= ... -DINLINE_ASM  ...
+
+INLINE_ASM=-masm=intel
+```
+
+
+Выполним команды:
+```
+make MODE=TEST
+taskset -c 0 ./hash_table ./file_with_words.txt -hash hash_crc32_asm  -find ./words_for_search.txt -plot plot.py
+python plot.py
+```
+
+Получаем график:
+
+<div style="text-align:center">
+    <img src="./pictures/inline_asm.png#center" alt="*search_element_in_cash* написанная при помощи inline asm в C">
+</div>
+<br>
+<br>
+
+Значит, что для версии с *search_element_in_cash* написанноц при помощи inline asm в C: СPE = $78.8 \pm 38.0$
+
+Получаем, что на данный момент наши оптимизации увиличели производительность изначальной программы в 2.53 раза.
+
+## Вывод
+
+Таблица с этогами 
+Подсчёт коэффициента asm
