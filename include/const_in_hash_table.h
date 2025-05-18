@@ -2,14 +2,9 @@
 #define CONST_IN_HASH_TABLE_H
 
 #include <immintrin.h>
+#include <limits.h>
 
-#ifdef PRINT_ALL
-	#define PRINT_INF_ABOUT_HASH_FUNC
-	#define PRINT_WORDS_FOR_SEARCH
-	#define PRINT_CPE_RESULT
-	#define DEBUG_CRC32_
-#endif
-
+//#define DEBUG
 //#define TEST_PROGRAM
 //#define INTRINSICS_
 //#define INLINE_ASM_
@@ -29,7 +24,7 @@ const size_t SHIFTING_IN_GFB2            = 5;
 const size_t SIZE_OF_DELETE_LIST       = 0;
 const size_t MIN_SIZE_OF_LIST          = 1;
 const size_t COUNT_NODES_IN_CALLOC     = 1;
-const size_t MIN_COUNTER_ELEMENT       = 1;
+const size_t MIN_COUNTER_ELEMENT       = 0;
 const data_t INITIALIZATION_OF_DATA_T  = 0;
 const size_t INDEX_FILE_WORDS_IN_ARGV  = 1;
 const size_t MAX_LEN_WORD              = 31;
@@ -43,11 +38,16 @@ const size_t MIN_COUNT_STRS            = 1;
 const size_t COUNT_LONG_IN_M256I       = 4;
 const int    MASK_IF_ELEM_EQUAL        = -1;
 const size_t ALIGNMENT                 = 32;
+const size_t DIFFERENCE_COUNT_WORDS    = 1;
 
-const size_t COUNT_BUCKETS             = 1024;    //727
-const size_t COUNT_REPEATING           = 15;
+const size_t COUNT_BUCKETS             = 7313;    //727  1024   7313
+const size_t COUNT_REPEATING           = 100;      //70000  10
 const size_t SIZE_CASH_WITH_WORDS      = 4;
-//const char*  POISON                   = "\0";
+
+const size_t CRC32_POLYNOMIAL = 0xEDB88320;
+const size_t CRC32_INIT_CRC   = 0xFFFFFFFF;
+const size_t CRC32_TABLE_SIZE = UCHAR_MAX + 1;
+const size_t MASK_FOR_2_BYTES = 0xFF;
 
 enum errors_in_hash_table_t
 {
@@ -58,17 +58,15 @@ enum errors_in_hash_table_t
 	CANNOT_OPEN_FILE                  = 4,
 	CANNOT_CLOSE_FILE                 = 5,
 	FAILED_CTOR_LIST                  = 6,
-	FAILED_HASH_TABLE                 = 7,
-	FAILED_SETVBUF                    = 8,
-	FAILED_STRNCPY                    = 9,
-	NOT_FIND_FLAG_HASH                = 10,
-	NOT_DEFINED_NAME_FUNC_HASH        = 11,
-	NOT_FIND_FLAG_INF_FUNC_HASH       = 12,
-	NOT_FIND_FLAG_FIND                = 13,
-	NOT_MEMORY_FROM_CALLOC            = 14,
-	ERROR_IN_FREAD                    = 15,
-	ERROR_IN_REALLOC                  = 16,
-	NOT_FIND_FLAG_PLOT                = 17
+	FAILED_STRNCPY                    = 7,
+	NOT_FIND_FLAG_HASH                = 8,
+	NOT_DEFINED_NAME_FUNC_HASH        = 9,
+	NOT_FIND_FLAG_INF_FUNC_HASH       = 10,
+	NOT_FIND_FLAG_FIND                = 11,
+	NOT_MEMORY_FROM_CALLOC            = 12,
+	ERROR_IN_FREAD                    = 13,
+	ERROR_IN_REALLOC                  = 14,
+	NOT_FIND_FLAG_PLOT                = 15
 };
 
 enum find_flag_t
@@ -90,7 +88,7 @@ struct node_t
 	data_t  data;
 };
 
-struct list_t 
+struct list_t   //size = 8 + 8 + 8 = 24
 {
 	size_t  size_of_list;
 	node_t* head;
@@ -100,13 +98,13 @@ struct list_t
 struct inf_hash_table_t
 {
 	size_t (*func_hash) (char*);
+	char*  text_for_fill;
 	list_t hash_table[COUNT_BUCKETS];
 };
 
 struct inf_for_search_t
 {
-	//char*  symbols_from_file;
-	char** words_for_search;
+	char*  words_for_search;
 	size_t count_words;
 };
 

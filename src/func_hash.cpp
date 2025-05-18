@@ -2,12 +2,14 @@
 #include <assert.h>
 #include <string.h>
 #include <immintrin.h>
+#include <limits.h>
 
 #include "const_in_hash_table.h"
+#include "text_and_files.h"
 #include "func_hash.h"
 
-static __u_int inversion_bits      (__u_int register_remainder);
-static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str);
+// static __u_int inversion_bits      (__u_int register_remainder);
+// static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str);
 
 //extern "C" size_t calculate_remainder_asm (char* str_for_crc32); 
 
@@ -48,6 +50,10 @@ size_t hash_sum_of_squares (char* str)
 size_t hash_djb2 (char* str)
 {
 	assert (str);
+
+	// printf ("%s\n", str);
+	// print_str_32_bytes (str);
+	// getchar ();
 
 	size_t hash   = BASE_NUMBER_DJB2,
 		   symbol = 0;
@@ -121,150 +127,150 @@ size_t hash_average (char* str)
 // E - 1110
 // F - 1111
 
-size_t hash_crc32 (char* str)
-{
-	assert (str);
+// size_t hash_crc32 (char* str)
+// {
+// 	assert (str);
 
-	#ifdef DEBUG_CRC32
-	printf ("POLYNOMIAL ==               %32b\n\n", POLYNOMIAL);
-	#endif
+// 	#ifdef DEBUG_CRC32
+// 	printf ("POLYNOMIAL ==               %32b\n\n", POLYNOMIAL);
+// 	#endif
 
-	__u_int register_remainder = 0;
+// 	__u_int register_remainder = 0;
 
-	size_t count_bytes_in_str = strlen (str);
-	size_t additional_bytes   = sizeof (__u_int);
+// 	size_t count_bytes_in_str = strlen (str);
+// 	size_t additional_bytes   = sizeof (__u_int);
 
-	char str_null[MAX_LEN_WORD] = "\0";
+// 	char str_null[MAX_LEN_WORD] = "\0";
 
-	if (count_bytes_in_str >= sizeof (__u_int))
-	{
-		register_remainder = *((__u_int*) str);
-	}
+// 	if (count_bytes_in_str >= sizeof (__u_int))
+// 	{
+// 		register_remainder = *((__u_int*) str);
+// 	}
 
-	else
-	{
-		for (size_t index_byte = 0; index_byte < count_bytes_in_str; index_byte++)
-		{
-			register_remainder += str[index_byte];
-			register_remainder <<= BITS_IN_BYTE;
-		}
+// 	else
+// 	{
+// 		for (size_t index_byte = 0; index_byte < count_bytes_in_str; index_byte++)
+// 		{
+// 			register_remainder += str[index_byte];
+// 			register_remainder <<= BITS_IN_BYTE;
+// 		}
 
-		register_remainder = (__u_int) ((sizeof (__u_int) - count_bytes_in_str) * BITS_IN_BYTE);
+// 		register_remainder = (__u_int) ((sizeof (__u_int) - count_bytes_in_str) * BITS_IN_BYTE);
 
-		additional_bytes = count_bytes_in_str;
-	}
+// 		additional_bytes = count_bytes_in_str;
+// 	}
 
-	#ifdef DEBUG_CRC32
-	printf ("register_remainder ==       %32b\n", register_remainder);
-	#endif
+// 	#ifdef DEBUG_CRC32
+// 	printf ("register_remainder ==       %32b\n", register_remainder);
+// 	#endif
 	
-	register_remainder = calculate_remainder (register_remainder, count_bytes_in_str, str);
-	register_remainder = calculate_remainder (register_remainder, additional_bytes,   str_null);
+// 	register_remainder = calculate_remainder (register_remainder, count_bytes_in_str, str);
+// 	register_remainder = calculate_remainder (register_remainder, additional_bytes,   str_null);
 
-	#ifdef DEBUG_CRC32
-	printf ("----");
-	getchar ();
-	#endif
+// 	#ifdef DEBUG_CRC32
+// 	printf ("----");
+// 	getchar ();
+// 	#endif
 
-	return (size_t) (register_remainder % COUNT_BUCKETS);
-}
+// 	return (size_t) (register_remainder % COUNT_BUCKETS);
+// }
 
-static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str)
-{
-	__u_int high_bit = 0;
+// static __u_int calculate_remainder (__u_int register_remainder, size_t max_index_byte, char* str)
+// {
+// 	__u_int high_bit = 0;
 
-	for (size_t index_byte = 0; index_byte < max_index_byte; index_byte++)
-	{
-		char byte = str[index_byte];
+// 	for (size_t index_byte = 0; index_byte < max_index_byte; index_byte++)
+// 	{
+// 		char byte = str[index_byte];
 
-		char mask_next_bit = MASK_HIGH_BIT_BYTE;
+// 		char mask_next_bit = MASK_HIGH_BIT_BYTE;
 
-		for (long number_bit = sizeof (char) - 1; number_bit >= 0; number_bit--)
-		{
-			high_bit = register_remainder & MASK_HIGH_BIT_IN_REGISTER;
+// 		for (long number_bit = sizeof (char) - 1; number_bit >= 0; number_bit--)
+// 		{
+// 			high_bit = register_remainder & MASK_HIGH_BIT_IN_REGISTER;
 
-			register_remainder <<= COUNT_SHIFTING_BITS;
-			register_remainder += (byte & mask_next_bit) >> number_bit;
-			mask_next_bit >>= COUNT_SHIFTING_BITS;
+// 			register_remainder <<= COUNT_SHIFTING_BITS;
+// 			register_remainder += (byte & mask_next_bit) >> number_bit;
+// 			mask_next_bit >>= COUNT_SHIFTING_BITS;
 
-			#ifdef DEBUG_CRC32
-			printf ("register_remainder ==       %32b\n", register_remainder);
-			printf ("high_bit ==                 %32b\n", high_bit);
-			#endif
+// 			#ifdef DEBUG_CRC32
+// 			printf ("register_remainder ==       %32b\n", register_remainder);
+// 			printf ("high_bit ==                 %32b\n", high_bit);
+// 			#endif
 
-			if (high_bit)
-			{
-				register_remainder = inversion_bits (register_remainder);
-				#ifdef DEBUG_CRC32
-				printf ("register_remainder ==       %32b\n\n", register_remainder);
-				#endif
-			}
+// 			if (high_bit)
+// 			{
+// 				register_remainder = inversion_bits (register_remainder);
+// 				#ifdef DEBUG_CRC32
+// 				printf ("register_remainder ==       %32b\n\n", register_remainder);
+// 				#endif
+// 			}
 
-			#ifdef DEBUG_CRC32
-			printf ("----");
-			getchar ();
-			#endif
-		}
-	}
+// 			#ifdef DEBUG_CRC32
+// 			printf ("----");
+// 			getchar ();
+// 			#endif
+// 		}
+// 	}
 
-	return register_remainder;
-}
+// 	return register_remainder;
+// }
 
-static __u_int inversion_bits (__u_int register_remainder)
-{
-	__u_int mask_next_bit = MASK_FIRST_BIT;
+// static __u_int inversion_bits (__u_int register_remainder)
+// {
+// 	__u_int mask_next_bit = MASK_FIRST_BIT;
 
-	__u_int next_bit_in_polynomial   = 0;
-	__u_int next_bit_in_old_register = 0;
+// 	__u_int next_bit_in_polynomial   = 0;
+// 	__u_int next_bit_in_old_register = 0;
 
-	for (size_t iteration = 0; iteration < sizeof (__u_int); iteration++)
-	{	
-		next_bit_in_polynomial   = (POLYNOMIAL & mask_next_bit);
-		#ifdef DEBUG_CRC32
-		printf ("\nnext_bit_in_polynomial ==   %32b\n", next_bit_in_polynomial);
-		#endif
+// 	for (size_t iteration = 0; iteration < sizeof (__u_int); iteration++)
+// 	{	
+// 		next_bit_in_polynomial   = (POLYNOMIAL & mask_next_bit);
+// 		#ifdef DEBUG_CRC32
+// 		printf ("\nnext_bit_in_polynomial ==   %32b\n", next_bit_in_polynomial);
+// 		#endif
 
-		if (next_bit_in_polynomial == 0)
-		{
-			mask_next_bit <<= COUNT_SHIFTING_BITS;
-			continue;
-		}
+// 		if (next_bit_in_polynomial == 0)
+// 		{
+// 			mask_next_bit <<= COUNT_SHIFTING_BITS;
+// 			continue;
+// 		}
 
-		next_bit_in_old_register = register_remainder & mask_next_bit;
+// 		next_bit_in_old_register = register_remainder & mask_next_bit;
 
-		#ifdef DEBUG_CRC32
-		printf ("next_bit_in_old_register == %32b\n\n", next_bit_in_old_register);
-		#endif
+// 		#ifdef DEBUG_CRC32
+// 		printf ("next_bit_in_old_register == %32b\n\n", next_bit_in_old_register);
+// 		#endif
 
-		if (next_bit_in_old_register == 0)
-			register_remainder |= mask_next_bit;
+// 		if (next_bit_in_old_register == 0)
+// 			register_remainder |= mask_next_bit;
 		
-		else
-		{
-			#ifdef DEBUG_CRC32
-			printf ("mask_next_bit      == %32b\n", mask_next_bit);
-			printf ("!mask_next_bit     == %32b\n", ~mask_next_bit);
-			#endif
+// 		else
+// 		{
+// 			#ifdef DEBUG_CRC32
+// 			printf ("mask_next_bit      == %32b\n", mask_next_bit);
+// 			printf ("!mask_next_bit     == %32b\n", ~mask_next_bit);
+// 			#endif
 
-			register_remainder &= (~mask_next_bit);
-		}
+// 			register_remainder &= (~mask_next_bit);
+// 		}
 
-		#ifdef DEBUG_CRC32
-		printf ("register_remainder ==       %32b\n", register_remainder);
-		#endif
+// 		#ifdef DEBUG_CRC32
+// 		printf ("register_remainder ==       %32b\n", register_remainder);
+// 		#endif
 
-		mask_next_bit <<= COUNT_SHIFTING_BITS;
+// 		mask_next_bit <<= COUNT_SHIFTING_BITS;
 
-		#ifdef DEBUG_CRC32
-		printf ("----");
-		getchar ();
-		#endif
-	}
+// 		#ifdef DEBUG_CRC32
+// 		printf ("----");
+// 		getchar ();
+// 		#endif
+// 	}
 
-	return register_remainder;
-}
+// 	return register_remainder;
+// }
 
-//------------------------------------------------------------------------------------------------------------------------
+// //------------------------------------------------------------------------------------------------------------------------
 
 errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, char* str_name_func_hash, char* name_inf_file)
 {
@@ -340,3 +346,43 @@ errors_in_hash_table_t print_inf_about_func_hash (list_t* hash_table, char* str_
 
 // 	return (size_t) (register_remainder % COUNT_BUCKETS);
 // }
+
+errors_in_hash_table_t hash_crc32_gen_table (size_t* table) 
+{
+	assert (table);
+
+	size_t crc = 0;
+
+	for (size_t byte_value = 0; byte_value < CRC32_TABLE_SIZE; byte_value++) 
+	{
+		crc = byte_value;
+
+		for (size_t bit_value = 0; bit_value < CHAR_BIT; bit_value++) 
+		{
+			if (crc & 1)
+				crc = (crc >> 1) ^ CRC32_POLYNOMIAL;
+			else
+				crc >>= 1;
+		}
+		table[byte_value] = crc;
+	}
+
+	return NOT_ERROR;
+}
+
+size_t hash_crc32 (char* bytes) 
+{
+	assert (bytes);
+
+	size_t size_in_bytes = MAX_LEN_WORD;
+
+	size_t crc = CRC32_INIT_CRC;
+	const u_char* u_byte = (const u_char*) bytes;
+
+	extern size_t TABLE_FOR_CRC32[CRC32_TABLE_SIZE];
+
+	for (size_t i = 0; i < size_in_bytes; i++)
+		crc = (crc >> 8) ^ TABLE_FOR_CRC32[(crc ^ *(const size_t*)(u_byte++)) & MASK_FOR_2_BYTES];
+
+ 	return crc % COUNT_BUCKETS;
+}

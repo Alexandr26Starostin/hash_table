@@ -39,190 +39,99 @@
 		return code_error;										     	\
 	}
 
-static errors_in_hash_table_t fill_words_for_search (inf_for_search_t* ptr_inf_for_search, char** words_for_search, FILE* file_search);
+errors_in_hash_table_t print_text (char* text, size_t count_words);
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
 
-errors_in_hash_table_t get_word_from_file (FILE* file_words, char* word)
+errors_in_hash_table_t get_text_from_file (FILE* file_words, char** ptr_text, size_t* ptr_count_words)
 {
 	assert (file_words);
-	assert (word);
+	assert (ptr_text);
+	assert (ptr_count_words);
 
-	char word_for_filling[MAX_BYTES_IN_WORD] = "\0";
+	size_t count_words = 0;
 
-	fgets (word_for_filling, MAX_LEN_WORD, file_words);
+	fscanf (file_words, "%ld\n", &count_words);
 
-	char   symbol = '\0';
-	size_t index  = 0;
+	size_t count_bytes_for_text = count_words * MAX_BYTES_IN_WORD;
 
-	for (; index < MAX_LEN_WORD; index++)
-	{
-		symbol = word_for_filling[index];
+	#ifndef INTRINSICS
+	char* text = (char*) calloc (count_bytes_for_text, sizeof (char));
+	#else
+	char* text = (char*) aligned_alloc (ALIGNMENT, count_bytes_for_text * sizeof (char));
+	#endif
 
-		if (symbol == '\n')
-		{
-			word_for_filling[index] = '\0';
-			break;;
-		}
-
-		if (symbol == '\0')
-		{
-			break;
-		}
-	}
-
-	//word[index] = '\0';    //word[index - 1] = '\0';
-
-	// printf ("%s\n", word_for_filling);
-
-	// getchar ();
-
-	
-
-	if (strncpy(word, word_for_filling, MAX_LEN_WORD) == NULL)
+	if (text == NULL)
 	{
 		printf ("Error in %s:%d\n"
-				"Failed strncpy();\n\n", __FILE__, __LINE__);
-	}
-
-	return NOT_ERROR;
-}
-
-errors_in_hash_table_t get_words_for_search (int argc, char** argv, inf_for_search_t* ptr_inf_for_search)
-{
-	assert (argv);
-	assert (ptr_inf_for_search);
-
-	char** words_for_search = (char**) calloc (MIN_SIZE_WORDS_FOR_SEARCH, sizeof (char*));
-	if (words_for_search == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Have not memory for words_for_search from calloc\n\n", __FILE__, __LINE__);
+				"Not memory for text from calloc\n\n", __FILE__, __LINE__);
 
 		return NOT_MEMORY_FROM_CALLOC;
 	}
 
-	ptr_inf_for_search -> words_for_search = words_for_search;
-	
-	//-------------------------------------------------------------------------------------------------------------------
+	#ifdef INTRINSICS
+	memset (text, 0, count_bytes_for_text * sizeof (char));
+	#endif
 
-	FIND_FLAG_("-find", "Not find flag: -find <file_with_words_for_search>", NOT_FIND_FLAG_FIND)
+	char word_from_file[MAX_BYTES_IN_WORD] = "\0";
 
-	FILE* file_search = fopen (argv[index_argc], "r");
-	if (file_search == NULL)
+	char   symbol = '\0';
+
+	for (size_t index_word = 0; index_word < count_bytes_for_text; index_word += MAX_BYTES_IN_WORD)
 	{
-		printf ("Error in %s:%d\n"
-				"Cannot open file_search\n"
-				"Error in fopen(); or you don't write name of file with words for search:"
-				"-find <file_with_words_for_search>\n\n", __FILE__, __LINE__);
+		fgets (word_from_file, MAX_LEN_WORD, file_words);
 
-		free (words_for_search);
+		size_t index_symbol = 0;
 
-		return CANNOT_OPEN_FILE;
-	}
-
-	//-------------------------------------------------------------------------------------------------------------------
-
-	errors_in_hash_table_t status = fill_words_for_search (ptr_inf_for_search, words_for_search, file_search);
-	if (status) 
-	{
-		CLOSE_FILE_(file_search, "file_search")
-		//free (words_for_search);   CANNOT: words_for_search == NULL
-		return status;
-	}
-
-	CLOSE_FILE_(file_search, "file_search")
-
-	return NOT_ERROR;
-}
-
-errors_in_hash_table_t initialize_aligned_alloc (char* array)
-{
-	assert (array);
-
-	for (size_t index = 0; index < MAX_BYTES_IN_WORD; index++)
-	{
-		array[index] = '\0';
-	}
-
-	return NOT_ERROR;
-}
-
-static errors_in_hash_table_t fill_words_for_search (inf_for_search_t* ptr_inf_for_search, char** words_for_search, FILE* file_search)
-{
-	assert (ptr_inf_for_search);
-	assert (words_for_search);
-	assert (file_search);
-
-	size_t size_words_for_search = MIN_SIZE_WORDS_FOR_SEARCH;
-	size_t count_word 			 = 0;
-
-	while (! feof (file_search))      //while (not end of file)
-	{
-		#ifdef INTRINSICS
-		char* words = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
-		#else
-		char* words = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
-		#endif
-
-		if (words == NULL)
+		for (; index_symbol < MAX_LEN_WORD; index_symbol++)
 		{
-			printf ("Error in %s:%d\n"
-					"Have not memory for words from calloc or aligned_alloc\n\n", __FILE__, __LINE__);
+			symbol = word_from_file[index_symbol];
 
-			return NOT_MEMORY_FROM_CALLOC;
+			if (symbol == '\n')
+			{
+				word_from_file[index_symbol] = '\0';
+				break;
+			}
+
+			if (symbol == '\0')
+			{
+				break;
+			}
 		}
 
-		#ifdef INTRINSICS
-		initialize_aligned_alloc (words);
-		#endif
-
-		get_word_from_file (file_search, words);   //return NOT_ERROR;
-
-		words_for_search[count_word] = words;
-
-		// printf ("%s\n", words_for_search[count_word]);
-		// getchar ();
-
-		count_word++;
-
-		if (count_word != size_words_for_search) {continue;}
-
-		//index_word == size_words_for_search
-
-		size_words_for_search *= INCREASE_SIZE_IN_REALLOC;
-
-		words_for_search = (char**) realloc (words_for_search, size_words_for_search * sizeof (char*));
-		
-		if (words_for_search == NULL)
+		if (strncpy(text + index_word, word_from_file, MAX_LEN_WORD) == NULL)
 		{
 			printf ("Error in %s:%d\n"
-					"Not have memory for realloc of words_for_search\n"
-					"index_word == %ld\n\n", __FILE__, __LINE__, count_word);
+					"Failed strncpy();\n\n", __FILE__, __LINE__);
+		}
 
-			return ERROR_IN_REALLOC;
-		}		
 	}
 
-	ptr_inf_for_search -> words_for_search = words_for_search;
-	ptr_inf_for_search -> count_words      = count_word;
+	#ifdef PRINT_TEXT_FROM_FILE 
+	print_text (text, count_words);
+	// getchar ();
+	#endif
+
+	*ptr_text        = text;
+	*ptr_count_words = count_words;
 
 	return NOT_ERROR;
 }
 
-errors_in_hash_table_t delete_words_for_search (inf_for_search_t inf_for_search)
+errors_in_hash_table_t print_text (char* text, size_t count_words)
 {
-	char** words_for_search = inf_for_search.words_for_search;
-	assert (words_for_search);	
+	assert (text);
 
-	size_t count_words = inf_for_search.count_words;
+	size_t count_bytes = count_words * MAX_BYTES_IN_WORD;
 
-	for (size_t index = 0; index < count_words; index++)
+	printf ("------------------------------------------------------------------------\ntext text from file:\n\n");
+
+	for (size_t index_word = 0; index_word < count_bytes; index_word += MAX_BYTES_IN_WORD)
 	{
-		free (words_for_search[index]);
+		print_str_32_bytes (text + index_word);
 	}
 
-	free (words_for_search);
+	printf ("\n------------------------------------------------------------------------\n\n");
 
 	return NOT_ERROR;
 }
@@ -254,8 +163,13 @@ errors_in_hash_table_t find_name_func_hash (int argc, char** argv, size_t (**ptr
 	else if (! strcmp (name_func_hash, "hash_average"))       
 		*ptr_func_hash = hash_average;
 
-	else if (! strcmp (name_func_hash, "hash_crc32"))        
+	else if (! strcmp (name_func_hash, "hash_crc32"))     
+	{
+		extern size_t TABLE_FOR_CRC32[CRC32_TABLE_SIZE];
+		hash_crc32_gen_table (TABLE_FOR_CRC32);   
+		
 		*ptr_func_hash = hash_crc32;
+	}
 
 	else if (! strcmp (name_func_hash, "hash_crc32_asm"))     
 	{	
@@ -289,15 +203,17 @@ errors_in_hash_table_t print_str_32_bytes (char* str)
 	return NOT_ERROR;
 }
 
-errors_in_hash_table_t print_words_for_search (char** words_for_search, size_t count_words)
+errors_in_hash_table_t print_words_for_search (char* words_for_search, size_t count_words)
 {
 	assert (words_for_search);
 
+	size_t count_bytes = count_words * MAX_BYTES_IN_WORD;
+
 	printf ("------------------------------------------------------------------------\nwords_for search:\n\n");
 
-	for (size_t index_word = 0; index_word < count_words; index_word++)
+	for (size_t index_word = 0; index_word < count_bytes; index_word += MAX_BYTES_IN_WORD)
 	{
-		printf ("%s\n", words_for_search[index_word]);
+		printf ("%s\n", words_for_search + index_word);
 	}
 
 	printf ("------------------------------------------------------------------------\n\n");

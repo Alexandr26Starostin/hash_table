@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <immintrin.h>
 
 #include "const_in_hash_table.h"
 #include "text_and_files.h"
@@ -30,21 +29,23 @@ errors_in_hash_table_t ctor_list (list_t* ptr_list)
 	first_element -> next_element    = NULL;
 	first_element -> counter_element = MIN_COUNTER_ELEMENT;
 
-	#ifdef INTRINSICS
-	first_element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
-	#else
-	first_element -> data = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
-	#endif
+	// #ifdef INTRINSICS
+	// first_element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
+	// #else
+	// first_element -> data = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
+	// #endif
 
-	if (first_element -> data == NULL)
-	{
-		printf ("Error in %s:%d\nHave not memory for first_element -> data in try to create list\n\n", __FILE__, __LINE__);
-		return NOT_MEMORY_FOR_ELEMENT;
-	}
+	// if (first_element -> data == NULL)
+	// {
+	// 	printf ("Error in %s:%d\nHave not memory for first_element -> data in try to create list\n\n", __FILE__, __LINE__);
+	// 	return NOT_MEMORY_FOR_ELEMENT;
+	// }
 
-	#ifdef INTRINSICS
-	initialize_aligned_alloc (first_element -> data);
-	#endif
+	// #ifdef INTRINSICS
+	// initialize_aligned_alloc (first_element -> data);
+	// #endif
+
+	first_element -> data = NULL;
 	
 	// if (strncpy(first_element -> data, "\0", MAX_LEN_WORD) == NULL)
 	// {
@@ -79,17 +80,18 @@ static errors_in_hash_table_t dtor_nodes (node_t* element)
 	if (! element) {return NOT_ERROR;}   //find next_element after tail
 
 	dtor_nodes (element -> next_element);
-	free (element -> data);
+	//free (element -> data);
 	free (element);
 
 	return NOT_ERROR;
 }
 
-errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //user must check data on NULL if data - ptr
+errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)
 {
 	assert (ptr_list);
+	assert (data);
 
-	node_t* find_element = ptr_list -> head;
+	node_t* find_element = (ptr_list -> head) -> next_element;
 
 	//print_str_32_bytes (data);
 
@@ -117,30 +119,7 @@ errors_in_hash_table_t add_element_in_list (list_t* ptr_list, data_t data)   //u
 
 	element -> next_element    = NULL;
 	element -> counter_element = MIN_COUNTER_ELEMENT;
-
-	#ifdef INTRINSICS
-	element -> data = (char*) aligned_alloc (ALIGNMENT, MAX_BYTES_IN_WORD * sizeof (char));
-	#else
-	element -> data = (char*) calloc (MAX_BYTES_IN_WORD, sizeof (char));
-	#endif
-
-	if (element -> data == NULL)
-	{
-		printf ("Error in %s:%d\nHave not memory for element -> data in try to add element (%s) in listt\n\n", __FILE__, __LINE__, data);
-		return NOT_MEMORY_FOR_ELEMENT;
-	}
-
-	#ifdef INTRINSICS
-	initialize_aligned_alloc (element -> data);
-	#endif
-
-	if (strncpy(element -> data, data, MAX_LEN_WORD) == NULL)
-	{
-		printf ("Error in %s:%d\n"
-				"Failed strncpy();\n\n", __FILE__, __LINE__);
-
-		return FAILED_STRNCPY;
-	}
+	element -> data            = data;
 
 	(ptr_list -> tail) -> next_element = element;
 
@@ -177,11 +156,12 @@ errors_in_hash_table_t print_list (list_t* ptr_list)
 	return NOT_ERROR;
 }
 
-size_t find_element_in_list	(list_t* ptr_list, data_t data)
+extern "C" size_t find_element_in_list	(list_t* ptr_list, data_t data)
 {
 	assert (ptr_list);
+	assert (data);
 
-	node_t* find_element = ptr_list -> head;
+	node_t* find_element = (ptr_list -> head) -> next_element;
 
 	size_t index_element = 0;
 
@@ -189,11 +169,11 @@ size_t find_element_in_list	(list_t* ptr_list, data_t data)
 	{
 		if (compare_element (find_element -> data, data))  //find_element -> data == data
 		{
-			#ifndef TEST_PROGRAM
+			#ifdef DEBUG
 				printf ("Find data (%s) in list:\nindex_element in list == %ld\n", data, index_element);
 			#endif
 
-			return find_element -> counter_element;
+			return find_element -> counter_element + DIFFERENCE_COUNT_WORDS;
 		}
 
 		index_element++;   //!!! we count index_element in test too
@@ -201,7 +181,7 @@ size_t find_element_in_list	(list_t* ptr_list, data_t data)
 		find_element = find_element -> next_element;
 	}
 
-	#ifndef TEST_PROGRAM
+	#ifdef DEBUG
 		printf ("Cannot find data (%s) in list\n", data);
 	#endif
 
@@ -239,15 +219,14 @@ errors_in_hash_table_t get_element_from_index (list_t* ptr_list, size_t find_ind
 	return NOT_ERROR;
 }
 
+#ifndef INTRINSICS
+
 bool compare_element (data_t element_1, data_t element_2)
 {
 	//data_t == char*
-	//data_t == char[32]
 	
 	assert (element_1);
 	assert (element_2);
-
-	#ifndef INTRINSICS
 
 	size_t index = 0;
 
@@ -256,6 +235,10 @@ bool compare_element (data_t element_1, data_t element_2)
 
 	while ((symbol_1 = element_1[index]) != '\0' and (symbol_2 = element_2[index]) != '\0')
 	{
+		// printf ("symbol_1 = %2X\n", symbol_1);
+		// printf ("symbol_2 = %2X\n", symbol_2);
+		// getchar ();
+
 		if (symbol_1 - symbol_2)
 		{
 			return false;   //element_1 != element_2
@@ -268,37 +251,9 @@ bool compare_element (data_t element_1, data_t element_2)
 		return true;     //element_1 == element_2
 
 	return false;
-
-	//------------------------------------------------------------------------------------------
-
-	#else
-
-	// long* ptr_1_elem = (long*) element_1;
-	// long* ptr_2_elem = (long*) element_2;
-	
-	// __m256i first_element  = _mm256_set_epi64x (ptr_1_elem[0], ptr_1_elem[1], ptr_1_elem[2], ptr_1_elem[3]);
-	// __m256i second_element = _mm256_set_epi64x (ptr_2_elem[0], ptr_2_elem[1], ptr_2_elem[2], ptr_2_elem[3]);
-
-	// print_m256i (first_element);
-	// print_m256i (second_element);
-
-	__m256i result_cmp = _mm256_cmpeq_epi64 (*(__m256i*) element_1, *(__m256i*) element_2);
-
-	//__m256i result_cmp = _mm256_cmpeq_epi64 (first_element, second_element);
-
-	//print_m256i (result_cmp);
-
-	//printf ("\n");
-
-	//getchar ();
-
-	if (_mm256_movemask_epi8 (result_cmp) == MASK_IF_ELEM_EQUAL)
-		return true;
-
-	return false;
-
-	#endif
 }
+
+#endif
 
 errors_in_hash_table_t print_m256i (__m256i elem)
 {

@@ -14,11 +14,7 @@ global hash_crc32_asm  ;global func: other files can see this func (for ld)
 ;exit:  rax = remainder (hash) crc32
 ;
 ;destr: rax = result
-;		rcx = count iterations for count crc32
-;		rsi = index element in str 
-;			= COUNT_BUCKETS
-;           = mask_for: rax % 1024
-;		rdx = hash from every element 
+;		rsi = mask_for: rax % 1024
 ;	
 ;must save:    rbp, rbx, r12-15
 ;mustn't save: others registers
@@ -26,29 +22,14 @@ global hash_crc32_asm  ;global func: other files can see this func (for ld)
 hash_crc32_asm:
 
 	xor eax, eax    ;rax = 0 - result
-	mov rcx, 4d     ;rcx = 4 - count iterations for count crc32            
-	xor esi, esi    ;rsi = 0 - index on element in str
 
-	count_crc32_for_new_elem:
-
-		crc32 rdx, qword [rdi + rsi]   ;rdx = hash for element 
-
-		add rsi, 8d  ;rsi += 8 (skip old elem with len 32 bytes)
-		add rax, rdx ;rax += rdx (save hash crc32 for element) 
-
-	loop count_crc32_for_new_elem     ;while (rcx != 0) {count_crc32_for_new_elem ();}  //while have elements in str, continue count crc32
+	crc32 rax, qword [rdi]        ;rdx = hash for 1 part element 
+	crc32 rax, qword [rdi + 8]    ;rdx = hash for 2 part element 
+	crc32 rax, qword [rdi + 16]   ;rdx = hash for 3 part element 
+	crc32 rax, qword [rdi + 24]   ;rdx = hash for 4 part element 
 
 	mov rsi, 01111111111b   ;rsi = 1024 - 1 = mask 
-	and rax, rsi           ;rax = rax_old % 1024
+	and rax, rsi           ;rax = rax_old % 1024WWWWWW
 
-	;mov rsi, 727d ;const size_t COUNT_BUCKETS = 727;
-	;;cqo           ;rax -> rdx:rax
-	;xor edx, edx
-	;div rsi       
-				  ;rax = rax_old / 727
-				  ;rdx = rax_old % 727
-
-	;mov rax, rdx
-
-	ret  ;rax = remainder (hash) from crc32
+	ret  ;rax = hash from crc32
 ;----------------------------------------------------------------------------------------------------------
