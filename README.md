@@ -142,8 +142,10 @@ make MODE=DEBUG
 Списки же могут быть, например, односвязными, двусвязными, кольцевыми, friendly список и тд. В нашем проекте мы используем односвязные списки. В них каждый элемент списка указывает на следующий за ним. Последний элемент (*tail*) указывает на *null* . При добавлении слова в список будет осуществлён линейный поиск по списку, начиная с первого элемента в списке (*head*). Если добавляемый элемент будет найден, то произойдёт увеличения счётчика, равного количеству, сколько раз данное слово встретилось в тексте. Если же элемент не будет найден, то он будет добавлен в конец список, и счётчик будет равен *1*. При поиске будет возвращаться значение счётчика, если элемент найден в списке, или *0*, если нет. Ниже представлена схема односвязного списка (схема взята с [этого](https://prog-cpp.ru/data-ols-oop/) источника):
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/list.png#center" alt="Схема односвязного списка">
 	<p>Схема односвязного списка</p>
+	</div>
 </div>
 
 <br>
@@ -384,13 +386,17 @@ size_t hash_ascii_first_symbol (char* str)
 </details>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_ascii_first_symbol.png#center" alt="Результат анализа hash_ascii_first_symbol при load_factor = 10 - 15">
 	<p>Результат анализа hash_ascii_first_symbol при   load_factor = 10 - 15</p>
+	</div>
 </div>
 <br>
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_ascii_first_symbol_red.png#center" alt="Результат анализа hash_ascii_first_symbol при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_ascii_first_symbol при   load_factor = 1.5 - 2</p>
+	</div>
 </div>
 
 <br>
@@ -420,15 +426,19 @@ size_t hash_sum_ascii (char* str)
 </details>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_sum_ascii.png#center" alt="Результат анализа hash_sum_ascii при load_factor = 10 - 15">
 	<p>Результат анализа hash_sum_ascii при   load_factor = 10 - 15</p>S
+	</DIV>
 </div>
 
 <br>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_sum_ascii_red.png#center" alt="Результат анализа hash_sum_ascii при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_sum_ascii при   load_factor = 1.5 - 2</p>S
+	</div>
 </div>
 
 <br>
@@ -458,15 +468,19 @@ size_t hash_sum_of_squares (char* str)
 </details>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_sum_of_squares.png#center" alt="Результат анализа hash_sum_of_squares при load_factor = 10 - 15">
 	<p>Результат анализа hash_sum_of_squares при   load_factor = 10 - 15</p>
+	</div>
 </div>
 
 <br>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_sum_of_squares_red.png#center" alt="Результат анализа hash_sum_of_squares при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_sum_of_squares при   load_factor = 1.5 - 2</p>
+	</div>
 </div>
 
 <br>
@@ -496,15 +510,19 @@ size_t hash_mul_all_ascii (char* str)
 </details>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_mul_all_ascii.png#center" alt="Результат анализа hash_mul_all_ascii при load_factor = 10 - 15">
 	<p>Результат анализа hash_mul_all_ascii при   load_factor = 10 - 15</p>
+	</div>
 </div>
 
 <br>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_mul_all_ascii_red.png#center" alt="Результат анализа hash_mul_all_ascii при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_mul_all_ascii при   load_factor = 1.5 - 2</p>
+	</div>
 </div>
 
 <br>
@@ -538,16 +556,20 @@ size_t hash_average (char* str)
 
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_average.png#center" alt="Результат анализа hash_average при load_factor = 10 - 15">
 	<p>Результат анализа hash_average при   load_factor = 10 - 15</p>
+	</div>
 </div>
 
 
 <br>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_average_red.png#center" alt="Результат анализа hash_average при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_average при   load_factor = 1.5 - 2</p>
+	</div>
 </div>
 
 
@@ -582,16 +604,20 @@ size_t hash_djb2 (char* str)
 </details>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_djb2.png#center" alt="Результат анализа hash_djb2 при load_factor = 10 - 15">
 	<p>Результат анализа hash_djb2 при   load_factor = 10 - 15</p>
+	</div>
 </div>
 
 
 <br>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_djb2_red.png#center" alt="Результат анализа hash_djb2 при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_djb2 при   load_factor = 1.5 - 2</p>
+	</div>
 </div>
 
 
@@ -653,14 +679,18 @@ size_t hash_crc32 (char* bytes)
 </details>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_crc32.png#center" alt="Результат анализа hash_crc32 при load_factor = 10 - 15">
 	<p>Результат анализа hash_crc32 при   load_factor = 10 - 15</p>
+	</div>
 </div>
 <br>
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_crc32_red.png#center" alt="Результат анализа hash_crc32 при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_crc32 при   load_factor = 1.5 - 2</p>
+	</div>
 </div>
 <br>
 
@@ -1166,8 +1196,10 @@ python plot.py
 Получаем график:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/base_-O0.png#center" alt="Измерение CPE для базовой версии">
 	<p>Измерение CPE для базовой версии</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1190,8 +1222,10 @@ python plot.py
 Включим флаг оптимизаций *-O3*, выполним те же действия и получим график:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/base_-O3.png#center" alt="Измерение CPE изначальной версии с *-O3*">
 	<p>Измерение CPE для изначальной версии с *-O3*</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1216,8 +1250,10 @@ hotspot perf.data
 Мы увидим следующее:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/perf_opt_1.png#center" alt="Выявление неэффективных участков изначальной версии с -O3">
 	<p>Выявление неэффективных участков изначальной версии с -O3</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1310,8 +1346,10 @@ python plot.py
 Получаем график:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/crc32_asm.png#center" alt="Измерение CPE для версии с hash_crc32_asm">
 	<p>Измерение CPE для версии с hash_crc32_asm</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1325,8 +1363,10 @@ python plot.py
 График распределения *hash_crc32_asm*:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/hash_crc32 asm.png#center" alt="Результат анализа hash_crc32_asm при load_factor = 10 - 15">
 	<p>Результат анализа hash_crc32_asm при   load_factor = 10 - 15</p>
+	</div>
 </div>
 
 
@@ -1349,8 +1389,10 @@ hotspot perf.data
 Получим картинку:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/perf_opt_2.png#center" alt="Выявление неэффективных участков версии с hash_crc32_asm">
 	<p>Выявление неэффективных участков версии с hash_crc32_asm</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1427,8 +1469,10 @@ python plot.py
 Получаем график:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/intrinsics.png#center" alt="Измерение CPE для версии с compare_element на Intrinsics">
 	<p>Измерение CPE для версии с compare_element на Intrinsics</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1452,8 +1496,10 @@ hotspot perf.data
 Получим картинку:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/perf_opt_3.png#center" alt="Выявление неэффективных участков версии с hash_crc32_asm и compare_element через Intrinsics">
 	<p>Выявление неэффективных участков версии с hash_crc32_asm и compare_element через Intrinsics</p>
+	</div>
 </div>
 <br>
 <br>
@@ -1663,8 +1709,10 @@ python plot.py
 Получаем график:
 
 <div style="text-align:center">
+	<div align="center">
     <img src="./pictures/inline_asm.png#center" alt="Измерение CPE для версии с inline asm в C">
 	<p>Измерение CPE для версии с inline asm в C</p>
+	</div>
 </div>
 <br>
 <br>
