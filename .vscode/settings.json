@@ -17,5 +17,9 @@
 		"initializer_list": "cpp",
 		"charconv": "cpp",
 		"cstdlib": "cpp"
-	}
+	},
+	"spellright.language": [
+		
+		
+		"ru", "en"]
 }
