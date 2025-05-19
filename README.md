@@ -131,8 +131,8 @@ make MODE=DEBUG
 
 
 <div style="text-align:center">
-    <img src="./pictures/hash_table.png#center" alt="Схема хэш-таблицы с цепочками">
 	<div align="center">
+    <img src="./pictures/hash_table.png#center" alt="Схема хэш-таблицы с цепочками">
 	<p>Схема хэш-таблицы с цепочками</p>
 	</div>
 </div>
