@@ -19,7 +19,11 @@
 		"cstdlib": "cpp"
 	},
 	"spellright.language": [
-		
-		
-		"ru", "en"]
+		"en-US-10-1."
+	],
+	"spellright.documentTypes": [
+		"plaintext",
+		"latex",
+		"html"
+	]
 }

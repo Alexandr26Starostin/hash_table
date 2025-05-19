@@ -6,8 +6,8 @@
 
 //#define DEBUG
 //#define TEST_PROGRAM
-//#define INTRINSICS_
-//#define INLINE_ASM_
+//#define INTRINSICS
+//#define INLINE_ASM
 
 //typedef long data_t; 
 typedef char* data_t;
