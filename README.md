@@ -1085,15 +1085,15 @@ $$b = \frac{\sum_{i=1}^N y_i - k \sum_{i=1}^N x_i}{N}$$
 
 Случайная погрешность *k*:
 
-$$\sigma_{k\_случ} = \sqrt{\frac{\sum_{i=1}^N (y_i - (k x_i + b))^2}{(N-2) \sum_{i=1}^N (x_i - \overline{x})^2}}$$
+$$\sigma_{k\_\text{случ}} = \sqrt{\frac{\sum_{i=1}^N (y_i - (k x_i + b))^2}{(N-2) \sum_{i=1}^N (x_i - \overline{x})^2}}$$
 
 Если приборная погрешность *x* равна  $\sigma_x$, а погрешность *y* равна  $\sigma_y$, то приборная погрешность *k*:
 
-$$\sigma_{k\_приб} = \frac{\sqrt{N \sigma_y^2 + N k^2 \sigma_x^2}}{\sum_{i=1}^N (x_i -\overline{x})^2}$$
+$$\sigma_{k\_\text{приб}} = \frac{\sqrt{N \sigma_y^2 + N k^2 \sigma_x^2}}{\sum_{i=1}^N (x_i -\overline{x})^2}$$
 
 Полная погрешность *k*:
 
-$$\sigma_{k} = \sqrt{(\sigma_{k\_случ})^2 + (\sigma_{k\_приб})^2}$$
+$$\sigma_{k} = \sqrt{(\sigma_{k\_\text{случ}})^2 + (\sigma_{k\_\text{приб}})^2}$$
 
 В нашем случае:
 
@@ -1102,13 +1102,13 @@ $$\sigma_{CPE} = \sigma_k$$
 $$\sigma_x = 0$$
 $$\sigma_y = 38$$
 
-Значения $k$ и $\sigma_{k\_случ}$ вычисялет программа на *plot.py*. Нам же останется вычислить $\sigma_{k\_приб}$ и $\sigma_k$.
+Значения $k$ и $\sigma_{k\_\text{случ}}$ вычисялет программа на *plot.py*. Нам же останется вычислить $\sigma_{k\_\text{приб}}$ и $\sigma_k$.
 
-Поскольку в измерениях $N$ = COUNT_BUCKETS = 1024, то $\sigma_{k\_приб} = 1.4 * 10^{-5} \approx 0$.
+Поскольку в измерениях $N$ = COUNT_BUCKETS = 1024, то $\sigma_{k\_\text{приб}} = 1.4 * 10^{-5} \approx 0$.
 
 Значит:
 
-$$\sigma_{k} \approx \sigma_{k\_случ}$$
+$$\sigma_{k} \approx \sigma_{k\_\text{случ}}$$
 
 ## Измерение базовой версии
 
