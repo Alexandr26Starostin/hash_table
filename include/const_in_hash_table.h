@@ -41,7 +41,7 @@ const size_t ALIGNMENT                 = 32;
 const size_t DIFFERENCE_COUNT_WORDS    = 1;
 
 const size_t COUNT_BUCKETS             = 1024;    //727  1024   7313
-const size_t COUNT_REPEATING           = 100;      //70000  10
+const size_t COUNT_REPEATING           = 10;      //70000  10
 const size_t SIZE_CASH_WITH_WORDS      = 4;
 
 const size_t CRC32_POLYNOMIAL = 0xEDB88320;

@@ -1361,10 +1361,7 @@ const int MASK_IF_ELEM_EQUAL = -1;
 
 	__m256i result_cmp = _mm256_cmpeq_epi64 (*(__m256i*) element_1, *(__m256i*) element_2);
 
-	if (_mm256_movemask_epi8 (result_cmp) == MASK_IF_ELEM_EQUAL)
-		return true;
-
-	return false;
+	return ! (_mm256_movemask_epi8 (result_cmp) - MASK_IF_ELEM_EQUAL);
 }
 
 
