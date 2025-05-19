@@ -371,37 +371,6 @@ DEFINES=-DPRINT_INF_ABOUT_HASH_FUNC
 Приведём код и результаты анализа каждой хэш-функции
 
 <details>
-<summary>hash_ascii_first_symbol:</summary>
-
-```C
-size_t hash_ascii_first_symbol (char* str)
-{
-	assert (str);
-
-	return (size_t) ((*str) % COUNT_BUCKETS);
-}
-
-
-```
-</details>
-
-<div style="text-align:center">
-	<div align="center">
-    <img src="./pictures/hash_ascii_first_symbol.png#center" alt="Результат анализа hash_ascii_first_symbol при load_factor = 10 - 15">
-	<p>Результат анализа hash_ascii_first_symbol при   load_factor = 10 - 15</p>
-	</div>
-</div>
-<br>
-<div style="text-align:center">
-	<div align="center">
-    <img src="./pictures/hash_ascii_first_symbol_red.png#center" alt="Результат анализа hash_ascii_first_symbol при load_factor = 1.5 - 2">
-	<p>Результат анализа hash_ascii_first_symbol при   load_factor = 1.5 - 2</p>
-	</div>
-</div>
-
-<br>
-
-<details>
 <summary>hash_sum_ascii:</summary>
 
 ```C
@@ -480,48 +449,6 @@ size_t hash_sum_of_squares (char* str)
 	<div align="center">
     <img src="./pictures/hash_sum_of_squares_red.png#center" alt="Результат анализа hash_sum_of_squares при load_factor = 1.5 - 2">
 	<p>Результат анализа hash_sum_of_squares при   load_factor = 1.5 - 2</p>
-	</div>
-</div>
-
-<br>
-
-<details>
-<summary>hash_mul_all_ascii:</summary>
-
-```C
-size_t hash_mul_all_ascii (char* str)
-{
-	assert (str);
-
-	size_t mul    = 1,
-		   symbol = 0;
-
-	while ((symbol = (size_t) (*str)) != '\0')
-	{
-		mul *= (size_t) symbol;
-		str++;
-	}
-
-	return mul % COUNT_BUCKETS;
-}
-
-
-```
-</details>
-
-<div style="text-align:center">
-	<div align="center">
-    <img src="./pictures/hash_mul_all_ascii.png#center" alt="Результат анализа hash_mul_all_ascii при load_factor = 10 - 15">
-	<p>Результат анализа hash_mul_all_ascii при   load_factor = 10 - 15</p>
-	</div>
-</div>
-
-<br>
-
-<div style="text-align:center">
-	<div align="center">
-    <img src="./pictures/hash_mul_all_ascii_red.png#center" alt="Результат анализа hash_mul_all_ascii при load_factor = 1.5 - 2">
-	<p>Результат анализа hash_mul_all_ascii при   load_factor = 1.5 - 2</p>
 	</div>
 </div>
 
